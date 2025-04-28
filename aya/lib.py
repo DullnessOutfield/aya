@@ -30,7 +30,18 @@ def extract_json(row: tuple) -> dict:
 
 
 
-
+def getDevs(kismet_file: Path, devtype: list[str]) -> list[dict]:
+    if type(devtype) is str:
+        devtype = [devtype]
+    devtype = [f"'{i}'" for i in devtype]
+    con = sqlite3.connect(kismet_file)
+    cur = con.cursor()
+    query = f'select * from devices where type in ({', '.join(devtype)})'
+    cur.execute(query)
+    devs = []
+    for dev in cur:
+        devs.append(extract_json(dev))
+    return devs
 
 def getAPs(kismet_file: Path) -> list[dict]:
     """
@@ -41,15 +52,13 @@ def getAPs(kismet_file: Path) -> list[dict]:
     Returns:
         list[dict]: A list of all the json dumps from all Wi-Fi Access Points in the db.
     """
-    con = sqlite3.connect(kismet_file)
-    cur = con.cursor()
-    cur.execute("select * from devices where type == 'Wi-Fi AP'")
-    APs = []
-    for AP in cur:
-        APs.append(extract_json(AP))
+    APs = getDevs(kismet_file, 'Wi-Fi AP')
     return APs
 
-
+def getSTAs(kismet_file: Path) -> list[dict]:
+    STAs = getDevs(kismet_file, ['Wi-Fi Client', 'Wi-Fi Device'])
+    return STAs
+    
 def CheckFilepaths(Filepaths: list[Path]):
     """
     Ensures all filepaths exist
@@ -80,6 +89,8 @@ def getAPclients(device: dict) -> list:
             return Clients
     return None
 
+def getBasePath() -> Path:
+    home = os.path.expanduser("~")
+    basepath = f"{home}/Data/"
+    return Path(basepath)
 
-# x = getAPs('/home/sigsec/Data/Kismet-20250428-15-58-49-1.kismet')
-# y = extract_json((1,2))

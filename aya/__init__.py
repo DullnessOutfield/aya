@@ -1,1 +1,1 @@
-from .lib import getAPs, CheckFilepaths, getAPclients
+from .lib import getAPs, CheckFilepaths, getAPclients, getBasePath, getSTAs

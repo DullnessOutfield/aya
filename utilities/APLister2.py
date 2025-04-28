@@ -8,8 +8,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("survey", nargs="+", default=["test"])
 args = parser.parse_args()
 
-home = os.path.expanduser("~")
-basepath = f"{home}/Data/"
+basepath = aya.getBasePath()
 
 
 def ProcessProject(project_folder: Path):
