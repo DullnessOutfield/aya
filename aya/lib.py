@@ -32,5 +32,12 @@ def CheckFilepaths(Filepaths):
             raise FileNotFoundError(f'{path} does not exist.') 
     return 0
 
+def getAPclients(device: dict) -> list:
+    if 'dot11.device' in device.keys():
+        if 'dot11.device.associated_client_map' in device['dot11.device'].keys():
+            Clients = [i for i in dot11['dot11.device.associated_client_map']]
+            return Clients
+    return None
+
 # x = getAPs('/home/sigsec/Data/Kismet-20250428-15-58-49-1.kismet')
 # y = extract_json((1,2))
