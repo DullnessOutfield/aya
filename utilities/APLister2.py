@@ -13,6 +13,14 @@ basepath = f"{home}/Data/"
 
 
 def ProcessProject(project_folder: Path):
+    """
+    Generates a dict of APs for a given project.
+    Args:
+        project_folder (Path): The folder for a given project, containing all the kismet files for that project
+    
+    Returns:
+        dict: Contains all APs with SSID, Clients, and MAC
+    """
     project_dict = {}
     files = project_folder.glob('**/*.kismet')
     for file in files:
@@ -28,6 +36,15 @@ def ProcessProject(project_folder: Path):
 
 
 def IntegrateFile(new_file, master_file) -> dict:
+    """
+    Merges APs from a kismetdb file into an existing AP dict
+    Args:
+        new_file: AP dict of the kismetdb file
+        master_file: AP dict of all previously processed kismetdb files
+    
+    Returns:
+        dict: The master_file with new_file integrated
+    """
     for device in new_file:
         if device not in master_file.keys():
             master_file[device] = new_file[device]
@@ -39,6 +56,14 @@ def IntegrateFile(new_file, master_file) -> dict:
 
 
 def ProcessFile(kismet_devices) -> dict:
+    """
+    Generates a dict of APs for a given file.
+    Args:
+        kismet_devices (list[dict]): a list of kismetdb device dumps
+    
+    Returns:
+        dict: Contains all APs with SSID, Clients, and MAC
+    """
     file_dict = {}
     for device in kismet_devices:
         mac = device["kismet.device.base.macaddr"]
