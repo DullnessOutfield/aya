@@ -150,9 +150,9 @@ def getDeviceProbeSSIDs(device: KismetDevice) -> list[str]:
         if "dot11.device.probed_ssid_map" in device.dot11.keys():
             probe_map = device.dot11["dot11.device.probed_ssid_map"]
             SSIDs = [
-                i["dot11.probedssid.ssid"]
-                for i in probe_map
-                if len(i["dot11.probedssid.ssid"]) > 0
+                i[1]["dot11.probedssid.ssid"]
+                for i in probe_map.items()
+                if len(i[1]["dot11.probedssid.ssid"]) > 0
             ]
             return SSIDs
     return []
