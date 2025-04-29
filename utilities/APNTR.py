@@ -1,5 +1,3 @@
-import glob
-import os
 import argparse
 import csv
 import aya
@@ -12,41 +10,44 @@ args = parser.parse_args()
 Clients = {}
 
 def GetAPs(Folder: Path):
-    parseKismetdb(Folder)
-    parseAirodump(Folder)
+    for file in Folder.glob('**/*.kismet'):
+        parseKismetdb(file)
+    
+    for file in Folder.glob('**/Kismet/**/*.csv'):
+        parseAirodump(file)
                                         
 
-def parseAirodump(Folder: Path):
-     for airo in Folder.glob('**/Kismet/**/*.csv'):
-        with open(airo) as csvfile:
-            sheet = csv.reader(csvfile)
-            for dev in sheet:
-                if len(dev):
-                    SSID = dev[0]
-                    Probes = dev[13:]
-                    if SSID not in Clients:
-                        Clients[SSID] = {"APs": [], "Probes": []}
-                    for probe in Probes:
-                        if probe not in Clients[SSID]['Probes'] and probe != ' ':
-                            Clients[SSID]['Probes'].append(probe)
+def parseAirodump(file: Path):
+    with open(file) as csvfile:
+        sheet = csv.reader(csvfile)
+        for dev in sheet:
+            if len(dev):
+                SSID = dev[0]
+                Probes = dev[13:]
+                if SSID not in Clients:
+                    Clients[SSID] = {"APs": [], "Probes": []}
+                for probe in Probes:
+                    if probe not in Clients[SSID]['Probes'] and probe != ' ':
+                        Clients[SSID]['Probes'].append(probe)
 
-def parseKismetdb(Folder: Path):
-    for file in Folder.glob('**/*.kismet'):
-        devs = aya.getSTAs(file)
-        for dev in devs:
-            SSID = dev["kismet.device.base.commonname"]
-            if SSID not in Clients:
-                Clients[SSID] = {"APs": [], "Probes": []}
-                if 'dot11.device.associated_client_map' in dev["dot11.device"].keys():
-                    for AP in dev["dot11.device"]['dot11.device.associated_client_map']:
-                        if AP not in Clients[SSID]['APs']:
-                            Clients[SSID]['APs'].append(AP)
-                if 'dot11.device.probed_ssid_map' in dev["dot11.device"].keys():
-                    for probe in dev["dot11.device"]["dot11.device.probed_ssid_map"]:
-                        if len(probe["dot11.probedssid.ssid"]) > 0:
-                            if probe not in Clients[SSID]['Probes']:
-                                Clients[SSID]['Probes'].append(probe['dot11.probedssid.ssid'])
-
+def parseKismetdb(file: Path) -> dict:
+    file_dict = {}
+    devs = aya.getSTAs(file)
+    for dev in devs:
+        SSID = dev["kismet.device.base.commonname"]
+        probes: list[str] = aya.getDeviceProbeSSIDs(dev)
+        connected_APs: list[str] = aya.getDeviceConnectedAPs(dev)
+        if SSID in file_dict.keys():
+            file_dict[SSID]['Probes'].extend(probes)
+            file_dict[SSID]['APs'].extend(connected_APs)
+            file_dict[SSID]['Probes'] = list(set(file_dict[SSID]['Probes']))
+            file_dict[SSID]['APs'] = list(set(file_dict[SSID]['APs']))
+        else:
+            file_dict[SSID] = {
+                "APs": connected_APs,
+                "Probes": probes
+            }
+    return file_dict
 
 def main():
     basepath = aya.getBasePath()

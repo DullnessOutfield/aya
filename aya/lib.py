@@ -122,5 +122,7 @@ def getDeviceProbeSSIDs(device: KismetDevice) -> list[str]:
             return SSIDs
 
 def getDeviceConnectedAPs(device: KismetDevice) -> list[str]:
-    #TODO
-    return 0
+    if device.dot11 is None:
+        return []
+    if 'dot11.device.associated_client_map' in device.dot11.keys():
+        return [i for i in device.dot11['dot11.device.associated_client_map']]
