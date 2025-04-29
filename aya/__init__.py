@@ -3,4 +3,5 @@ from .lib import (getAPs,
     getAPclients, 
     getBasePath, 
     getSTAs, 
-    getDeviceProbeSSIDs)
+    getDeviceProbeSSIDs,
+    KismetDevice)

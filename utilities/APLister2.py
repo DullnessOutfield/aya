@@ -2,6 +2,7 @@ import argparse
 import os
 import aya
 from pathlib import Path
+from aya import KismetDevice
 
 
 parser = argparse.ArgumentParser()
@@ -24,10 +25,10 @@ def ProcessProject(project_folder: Path):
     files = project_folder.glob('**/*.kismet')
     for file in files:
         location: Path = Path(file).parent.name
-        kismet_file: list[dict] = aya.getAPs(file)
+        file_APs: list[KismetDevice] = aya.getAPs(file)
         file_dict = {}
-        if kismet_file:
-            file_dict = ProcessFile(kismet_file)
+        if file_APs:
+            file_dict = ProcessFile(file_APs)
         for device in file_dict:
             file_dict[device]["Surveys"] = [location]
         project_dict = IntegrateFile(file_dict, project_dict)
@@ -54,7 +55,7 @@ def IntegrateFile(new_file, master_file) -> dict:
     return master_file
 
 
-def ProcessFile(kismet_devices) -> dict:
+def ProcessFile(kismet_devices: list[KismetDevice]) -> dict:
     """
     Generates a dict of APs for a given file.
     Args:
@@ -65,8 +66,8 @@ def ProcessFile(kismet_devices) -> dict:
     """
     file_dict = {}
     for device in kismet_devices:
-        mac = device["kismet.device.base.macaddr"]
-        SSID = device["kismet.device.base.commonname"]
+        mac = device.mac
+        SSID = device.json["kismet.device.base.commonname"]
         file_dict[SSID] = {"Clients": [], "Surveys": [], "MACs": []}
         Clients = aya.getAPclients(device)
         if Clients:
