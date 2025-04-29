@@ -2,51 +2,52 @@ import argparse
 import csv
 import aya
 from pathlib import Path
+from aya import KismetDevice
 
 parser = argparse.ArgumentParser()
 parser.add_argument("survey", nargs="+", default="")
 args = parser.parse_args()
 
-Clients = {}
+
 
 
 def GetAPs(Folder: Path):
+    clients: dict = {}
     for file in Folder.glob("**/*.kismet"):
-        parseKismetdb(file)
-
-    for file in Folder.glob("**/Kismet/**/*.csv"):
-        parseAirodump(file)
-
-
-def parseAirodump(file: Path):
-    with open(file) as csvfile:
-        sheet = csv.reader(csvfile)
-        for dev in sheet:
-            if len(dev):
-                SSID = dev[0]
-                Probes = dev[13:]
-                if SSID not in Clients:
-                    Clients[SSID] = {"APs": [], "Probes": []}
-                for probe in Probes:
-                    if probe not in Clients[SSID]["Probes"] and probe != " ":
-                        Clients[SSID]["Probes"].append(probe)
+        file_dict: dict = parseKismetdb(file, clients)
+        merge_dicts(clients, file_dict)
+    return clients
 
 
-def parseKismetdb(file: Path) -> dict:
-    file_dict = {}
+def parseKismetdb(file: Path, file_dict: dict) -> dict:
     devs = aya.getSTAs(file)
     for dev in devs:
-        SSID = dev.json["kismet.device.base.commonname"]
-        probes: list[str] = aya.getDeviceProbeSSIDs(dev)
-        connected_APs: list[str] = aya.getDeviceConnectedAPs(dev)
-        if SSID in file_dict.keys():
-            file_dict[SSID]["Probes"].extend(probes)
-            file_dict[SSID]["APs"].extend(connected_APs)
-            file_dict[SSID]["Probes"] = list(set(file_dict[SSID]["Probes"]))
-            file_dict[SSID]["APs"] = list(set(file_dict[SSID]["APs"]))
-        else:
-            file_dict[SSID] = {"APs": connected_APs, "Probes": probes}
+        file_dict = merge_device(file_dict, dev)
     return file_dict
+
+def merge_dicts(master: dict, new: dict) -> dict:
+    for name,entry in new.items():
+        probes = entry['Probes']
+        APs = entry['APs']
+        master = merge_entry(master,name,probes,APs)
+    return master
+
+def merge_device(clients: dict, device: KismetDevice):
+    probes: list[str] = aya.getDeviceProbeSSIDs(device)
+    connected_APs: list[str] = aya.getDeviceConnectedAPs(device)
+    name = device.name
+    merge_entry(clients,name,probes,connected_APs)
+    return clients
+
+def merge_entry(master: dict, name, probes, connected_APs) -> dict:
+    if name in master.keys():
+        master[name]["Probes"].extend(probes)
+        master[name]["APs"].extend(connected_APs)
+        master[name]["Probes"] = list(set(master[name]["Probes"]))
+        master[name]["APs"] = list(set(master[name]["APs"]))
+    else:
+        master[name] = {"APs": connected_APs, "Probes": probes}
+    return master
 
 
 def main():
@@ -55,13 +56,12 @@ def main():
     aya.CheckFilepaths(Filepaths)
 
     for path in Filepaths:
-        GetAPs(path)
+        clients = GetAPs(path)
 
-    for client in Clients:
-        if len(Clients[client]["Probes"]) > 1:
+    for client in clients:
+        if len(clients[client]["Probes"]) > 1:
             print(client + ":")
-            print(Clients[client]["Probes"])
-
+            print(clients[client]["Probes"])
 
 if __name__ == "__main__":
     main()
