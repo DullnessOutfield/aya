@@ -52,27 +52,39 @@ def extract_json(row: tuple) -> KismetDevice:
     return KismetDevice(name, mac, devtype, first_time, last_time, real_json)
 
 
-def getDevs(kismet_file: Path, devtype: list[str]) -> list[KismetDevice]:
+def getDevs(kismet_file: Path, devtype: list[str] = []) -> list[KismetDevice]:
+    """
+    Get devices from a kismet file
+    Args:
+        kismet_file (Path): The path to a kismetdb file
+        devtype (Optional list[str]): kismetdb device types to pull. Will pull all devices if not provided.
+
+    Returns:
+        list[dict]: A list of all the json dumps from all Wi-Fi Access Points in the db.
+    """
     if type(devtype) is str:
         devtype = [devtype]
     devtype = [f"'{i}'" for i in devtype]
     con = sqlite3.connect(kismet_file)
     cur = con.cursor()
-    if devtype == ["'all'"]:
+    if not devtype or devtype == ["'all'"]:
         query = 'select * from devices'
     else:
         query = f'select * from devices where type in ({', '.join(devtype)})'
     cur.execute(query)
     devs = []
     for device in cur:
-        devs.append(extract_json(device))
+        try:
+            devs.append(extract_json(device))
+        except:
+            pass
     return devs
 
 
 def getAPs(kismet_file: Path) -> list[KismetDevice]:
     """
     Get all Access Points from a kismet file
-    Args:cwd()
+    Args:
         kismet_file (Path): The path to a kismetdb file
 
     Returns:
@@ -113,6 +125,12 @@ def getAPclients(device: KismetDevice) -> list:
 
 
 def getBasePath() -> Path:
+    pathfile = './pathconfig.txt'
+    if os.path.exists(pathfile):
+        with open(pathfile) as f:
+            configured_path = f.readline()
+        if os.path.exists(configured_path):
+            return Path(configured_path)
     home = os.path.expanduser("~")
     basepath = f"{home}/Data/"
     return Path(basepath)
@@ -141,12 +159,28 @@ def getDeviceProbeSSIDs(device: KismetDevice) -> list[str]:
 
 
 def getDeviceConnectedAPs(device: KismetDevice) -> list[str]:
+    """
+    Pulls any APs a device connected to during a survey
+    Args:
+        device (KismetDevice): The device to check
+
+    Returns:
+        list[str]: MAC addresses of all connected access points
+    """
     if device.dot11 is not None:
         if "dot11.device.associated_client_map" in device.dot11.keys():
             return [i for i in device.dot11["dot11.device.associated_client_map"]]
     return []
 
 def findOUIMatches(kismet_file: Path, OUI_list: list[str]) -> list[KismetDevice]:
+    """
+    Gets all devices matching given OUIs
+    Args:
+        kismet_file (Path): kismetdb to pull devices from
+        OUI_list (list[str]): list of MAC addresses or OUIs to be matched to
+    Returns:
+        list[KismetDevice]: Matching devices
+    """
     OUI_list = [clean_OUI(i) for i in OUI_list]
     OUI_list = ', '.join(OUI_list)
     con = sqlite3.connect(kismet_file)
@@ -159,6 +193,14 @@ def findOUIMatches(kismet_file: Path, OUI_list: list[str]) -> list[KismetDevice]
     return devs
 
 def clean_OUI(oui: str) -> str:
+    """
+    Takes a MAC or OUI fragment and returns it in a standard format
+    Args:
+        oui (str): A MAC addr or OUI
+    Returns:
+        str: Standard OUI formatted as AA:BB:CC
+        '': Returns empty string if given mutilated str
+    """
     oui = re.sub(r'[^0-9a-fA-F]', '', oui)
     oui = oui[:6]
     if len(oui) != 6:
