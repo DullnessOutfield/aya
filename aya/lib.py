@@ -207,3 +207,11 @@ def clean_OUI(oui: str) -> str:
         return ''
     oui = [oui[i:i+2] for i in range(0,6,2)]
     return ':'.join(oui).upper()
+
+def getHashes(device: KismetDevice) -> str:
+    if device.dot11:
+        if "dot11.device.wpa_handshake_list" in device.dot11:
+            for handshake in device.dot11["dot11.device.wpa_handshake_list"]:
+                if handshake['dot11.eapol.rsn_pmkid'] != '':
+                    return handshake['dot11.eapol.rsn_pmkid']
+    return ''

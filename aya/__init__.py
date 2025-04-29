@@ -7,6 +7,7 @@ from .lib import (
     getSTAs,
     getDeviceProbeSSIDs,
     getDeviceConnectedAPs,
+    getHashes,
     KismetDevice,
 )
 
@@ -19,5 +20,6 @@ __all__ = (
     "getSTAs",
     "getDeviceProbeSSIDs",
     "getDeviceConnectedAPs",
+    "GetHashes",
     "KismetDevice",
 )
