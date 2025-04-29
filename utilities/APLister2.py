@@ -1,5 +1,4 @@
 import argparse
-import os
 import aya
 from pathlib import Path
 from aya import KismetDevice
@@ -17,12 +16,12 @@ def ProcessProject(project_folder: Path):
     Generates a dict of APs for a given project.
     Args:
         project_folder (Path): The folder for a given project, containing all the kismet files for that project
-    
+
     Returns:
         dict: Contains all APs with SSID, Clients, and MAC
     """
     project_dict = {}
-    files = project_folder.glob('**/*.kismet')
+    files = project_folder.glob("**/*.kismet")
     for file in files:
         location: Path = Path(file).parent.name
         file_APs: list[KismetDevice] = aya.getAPs(file)
@@ -41,7 +40,7 @@ def IntegrateFile(new_file, master_file) -> dict:
     Args:
         new_file: AP dict of the kismetdb file
         master_file: AP dict of all previously processed kismetdb files
-    
+
     Returns:
         dict: The master_file with new_file integrated
     """
@@ -60,7 +59,7 @@ def ProcessFile(kismet_devices: list[KismetDevice]) -> dict:
     Generates a dict of APs for a given file.
     Args:
         kismet_devices (list[dict]): a list of kismetdb device dumps
-    
+
     Returns:
         dict: Contains all APs with SSID, Clients, and MAC
     """
@@ -74,6 +73,7 @@ def ProcessFile(kismet_devices: list[KismetDevice]) -> dict:
             file_dict[SSID]["Clients"] = Clients
             file_dict[SSID]["MACs"] = [mac]
     return file_dict
+
 
 def main():
     APs = {}
