@@ -46,10 +46,8 @@ def extract_json(row: tuple) -> KismetDevice:
     except json.decoder.JSONDecodeError as e:
         raise KismetdbExtractError(f"Failed to parse device; {e}")
     name = real_json["kismet.device.base.commonname"]
-    if "dot11.device" in real_json.keys():
-        dot11 = real_json["dot11.device"]
-        return KismetDevice(name, mac, devtype, first_time, last_time, real_json, dot11)
-    return KismetDevice(name, mac, devtype, first_time, last_time, real_json)
+    dot11 = real_json.get("dot11.device")
+    return KismetDevice(name, mac, devtype, first_time, last_time, real_json, dot11)
 
 
 def getDevs(kismet_file: Path, devtype: list[str] = []) -> list[KismetDevice]:
@@ -118,9 +116,8 @@ def getAPclients(device: KismetDevice) -> list:
         list: A list of client MAC addresses
     """
     if device.dot11:
-        if "dot11.device.associated_client_map" in device.dot11.keys():
-            Clients = [i for i in device.dot11["dot11.device.associated_client_map"]]
-            return Clients
+        Clients = [i for i in device.dot11.get("dot11.device.associated_client_map")]
+        return Clients
     return []
 
 
@@ -147,14 +144,13 @@ def getDeviceProbeSSIDs(device: KismetDevice) -> list[str]:
         list[str]: All of the non-blank SSIDs in the device's probed_ssid_map
     """
     if device.dot11:
-        if "dot11.device.probed_ssid_map" in device.dot11.keys():
-            probe_map = device.dot11["dot11.device.probed_ssid_map"]
-            SSIDs = [
-                i[1]["dot11.probedssid.ssid"]
-                for i in probe_map.items()
-                if len(i[1]["dot11.probedssid.ssid"]) > 0
-            ]
-            return SSIDs
+        probe_map = device.dot11.get("dot11.device.probed_ssid_map")
+        SSIDs = [
+            i[1]["dot11.probedssid.ssid"]
+            for i in probe_map.items()
+            if len(i[1]["dot11.probedssid.ssid"]) > 0
+        ]
+        return SSIDs
     return []
 
 
@@ -168,8 +164,7 @@ def getDeviceConnectedAPs(device: KismetDevice) -> list[str]:
         list[str]: MAC addresses of all connected access points
     """
     if device.dot11 is not None:
-        if "dot11.device.associated_client_map" in device.dot11.keys():
-            return [i for i in device.dot11["dot11.device.associated_client_map"]]
+        return [i for i in device.dot11.get("dot11.device.associated_client_map")]
     return []
 
 def findOUIMatches(kismet_file: Path, OUI_list: list[str]) -> list[KismetDevice]:
@@ -210,8 +205,6 @@ def clean_OUI(oui: str) -> str:
 
 def getHashes(device: KismetDevice) -> str:
     if device.dot11:
-        if "dot11.device.wpa_handshake_list" in device.dot11:
-            for handshake in device.dot11["dot11.device.wpa_handshake_list"]:
-                if handshake['dot11.eapol.rsn_pmkid'] != '':
-                    return handshake['dot11.eapol.rsn_pmkid']
+        for handshake in device.dot11.get("dot11.device.wpa_handshake_list"):
+            return handshake.get('dot11.eapol.rsn_pmkid')
     return ''
