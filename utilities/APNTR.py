@@ -32,8 +32,8 @@ def merge_dicts(master: dict, new: dict) -> dict:
     return master
 
 def merge_device(clients: dict, device: KismetDevice):
-    probes: list[str] = aya.getDeviceProbeSSIDs(device)
-    connected_APs: list[str] = aya.getDeviceConnectedAPs(device)
+    probes: list[str] = device.getDeviceProbeSSIDs()
+    connected_APs: list[str] = device.getDeviceConnectedAPs()
     name = device.name
     merge_entry(clients,name,probes,connected_APs)
     return clients

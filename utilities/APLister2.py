@@ -68,7 +68,7 @@ def ProcessFile(kismet_devices: list[KismetDevice]) -> dict:
         mac = device.mac
         SSID = device.json["kismet.device.base.commonname"]
         file_dict[SSID] = {"Clients": [], "Surveys": [], "MACs": []}
-        Clients = aya.getAPclients(device)
+        Clients = device.getAPclients()
         if Clients:
             file_dict[SSID]["Clients"] = Clients
             file_dict[SSID]["MACs"] = [mac]

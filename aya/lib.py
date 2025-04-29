@@ -18,6 +18,52 @@ class KismetDevice:
     json: dict
     dot11: Optional[dict] = None
 
+    def getDeviceProbeSSIDs(self) -> list[str]:
+        """
+        Takes a kismet device json and returns all the SSIDs that device has probed for
+
+        Args:
+            device (dict): The json dump of the STA
+
+        Returns:
+            list[str]: All of the non-blank SSIDs in the device's probed_ssid_map
+        """
+
+        probe_map = self.dot11.get("dot11.device.probed_ssid_map")
+        SSIDs = [
+            i[1]["dot11.probedssid.ssid"]
+            for i in probe_map.items()
+            if len(i[1]["dot11.probedssid.ssid"]) > 0
+        ]
+        return SSIDs
+    
+    def getAPclients(self) -> list:
+        """
+        Gets all the clients of a given Access Point
+        Args:
+            device (KismetDevice): The json dump of the Access Point to check
+
+        Returns:
+            list: A list of client MAC addresses
+        """
+        Clients = [i for i in self.dot11.get("dot11.device.associated_client_map")]
+        return Clients
+    
+    def getDeviceConnectedAPs(self) -> list[str]:
+        """
+        Pulls any APs a device connected to during a survey
+        Args:
+            device (KismetDevice): The device to check
+
+        Returns:
+            list[str]: MAC addresses of all connected access points
+        """
+        return [i for i in self.dot11.get("dot11.device.associated_client_map")]
+
+    def getHashes(self) -> str:
+        for handshake in self.dot11.get("dot11.device.wpa_handshake_list"):
+            return handshake.get('dot11.eapol.rsn_pmkid')
+
 
 class KismetdbExtractError(Exception):
     pass
@@ -106,19 +152,7 @@ def CheckFilepaths(Filepaths: list[Path]):
             raise FileNotFoundError(f"{path} does not exist.")
 
 
-def getAPclients(device: KismetDevice) -> list:
-    """
-    Gets all the clients of a given Access Point
-    Args:
-        device (KismetDevice): The json dump of the Access Point to check
 
-    Returns:
-        list: A list of client MAC addresses
-    """
-    if device.dot11:
-        Clients = [i for i in device.dot11.get("dot11.device.associated_client_map")]
-        return Clients
-    return []
 
 
 def getBasePath() -> Path:
@@ -131,41 +165,6 @@ def getBasePath() -> Path:
     home = os.path.expanduser("~")
     basepath = f"{home}/Data/"
     return Path(basepath)
-
-
-def getDeviceProbeSSIDs(device: KismetDevice) -> list[str]:
-    """
-    Takes a kismet device json and returns all the SSIDs that device has probed for
-
-    Args:
-        device (dict): The json dump of the STA
-
-    Returns:
-        list[str]: All of the non-blank SSIDs in the device's probed_ssid_map
-    """
-    if device.dot11:
-        probe_map = device.dot11.get("dot11.device.probed_ssid_map")
-        SSIDs = [
-            i[1]["dot11.probedssid.ssid"]
-            for i in probe_map.items()
-            if len(i[1]["dot11.probedssid.ssid"]) > 0
-        ]
-        return SSIDs
-    return []
-
-
-def getDeviceConnectedAPs(device: KismetDevice) -> list[str]:
-    """
-    Pulls any APs a device connected to during a survey
-    Args:
-        device (KismetDevice): The device to check
-
-    Returns:
-        list[str]: MAC addresses of all connected access points
-    """
-    if device.dot11 is not None:
-        return [i for i in device.dot11.get("dot11.device.associated_client_map")]
-    return []
 
 def findOUIMatches(kismet_file: Path, OUI_list: list[str]) -> list[KismetDevice]:
     """
@@ -202,9 +201,3 @@ def clean_OUI(oui: str) -> str:
         return ''
     oui = [oui[i:i+2] for i in range(0,6,2)]
     return ':'.join(oui).upper()
-
-def getHashes(device: KismetDevice) -> str:
-    if device.dot11:
-        for handshake in device.dot11.get("dot11.device.wpa_handshake_list"):
-            return handshake.get('dot11.eapol.rsn_pmkid')
-    return ''
