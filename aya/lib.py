@@ -1,6 +1,7 @@
 import sqlite3
 import json
 import os
+import re
 from pathlib import Path
 from datetime import datetime
 from dataclasses import dataclass
@@ -74,7 +75,7 @@ def getAPs(kismet_file: Path) -> list[KismetDevice]:
     Returns:
         list[dict]: A list of all the json dumps from all Wi-Fi Access Points in the db.
     """
-    APs = getDevs(kismet_file, "Wi-Fi AP")
+    APs = getDevs(kismet_file, ["Wi-Fi AP", 'Wi-Fi Bridged'])
     return APs
 
 
@@ -141,3 +142,23 @@ def getDeviceConnectedAPs(device: KismetDevice) -> list[str]:
         if "dot11.device.associated_client_map" in device.dot11.keys():
             return [i for i in device.dot11["dot11.device.associated_client_map"]]
     return []
+
+def findOUIMatches(kismet_file: Path, OUI_list: list[str]) -> list[KismetDevice]:
+    OUI_list = [clean_OUI(i) for i in OUI_list]
+    OUI_list = ', '.join(OUI_list)
+    con = sqlite3.connect(kismet_file)
+    cur = con.cursor()
+    query = f'select * from devices where substr(devmac,1,8) in ({OUI_list})'
+    cur.execute(query)
+    devs = []
+    for device in cur:
+        devs.append(extract_json(device))
+    return devs
+
+def clean_OUI(oui: str) -> str:
+    oui = re.sub(r'[^0-9a-fA-F]', '', oui)
+    oui = oui[:6]
+    if len(oui) != 6:
+        return ''
+    oui = [oui[i:i+2] for i in range(0,6,2)]
+    return ':'.join(oui).upper()
