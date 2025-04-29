@@ -1,4 +1,5 @@
 from .lib import (
+    getDevs,
     getAPs,
     CheckFilepaths,
     getAPclients,
@@ -10,6 +11,7 @@ from .lib import (
 )
 
 __all__ = (
+    "getDevs",
     "getAPs",
     "CheckFilepaths",
     "getAPclients",

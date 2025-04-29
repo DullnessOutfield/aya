@@ -58,7 +58,10 @@ def getDevs(kismet_file: Path, devtype: list[str]) -> list[KismetDevice]:
     devtype = [f"'{i}'" for i in devtype]
     con = sqlite3.connect(kismet_file)
     cur = con.cursor()
-    query = f'select * from devices where type in ({', '.join(devtype)})'
+    if devtype == ["'all'"]:
+        query = 'select * from devices'
+    else:
+        query = f'select * from devices where type in ({', '.join(devtype)})'
     cur.execute(query)
     devs = []
     for device in cur:
@@ -69,7 +72,7 @@ def getDevs(kismet_file: Path, devtype: list[str]) -> list[KismetDevice]:
 def getAPs(kismet_file: Path) -> list[KismetDevice]:
     """
     Get all Access Points from a kismet file
-    Args:
+    Args:cwd()
         kismet_file (Path): The path to a kismetdb file
 
     Returns:
