@@ -3,66 +3,7 @@ import json
 import os
 import re
 from pathlib import Path
-from datetime import datetime
-from dataclasses import dataclass
-from typing import Optional
-
-
-@dataclass
-class KismetDevice:
-    name: str
-    mac: str
-    devtype: str
-    first_time: datetime
-    last_time: datetime
-    json: dict
-    dot11: Optional[dict] = None
-
-    def getDeviceProbeSSIDs(self) -> list[str]:
-        """
-        Takes a kismet device json and returns all the SSIDs that device has probed for
-
-        Args:
-            device (dict): The json dump of the STA
-
-        Returns:
-            list[str]: All of the non-blank SSIDs in the device's probed_ssid_map
-        """
-
-        probe_map = self.dot11.get("dot11.device.probed_ssid_map")
-        SSIDs = [
-            i[1]["dot11.probedssid.ssid"]
-            for i in probe_map.items()
-            if len(i[1]["dot11.probedssid.ssid"]) > 0
-        ]
-        return SSIDs
-    
-    def getAPclients(self) -> list:
-        """
-        Gets all the clients of a given Access Point
-        Args:
-            device (KismetDevice): The json dump of the Access Point to check
-
-        Returns:
-            list: A list of client MAC addresses
-        """
-        Clients = [i for i in self.dot11.get("dot11.device.associated_client_map")]
-        return Clients
-    
-    def getDeviceConnectedAPs(self) -> list[str]:
-        """
-        Pulls any APs a device connected to during a survey
-        Args:
-            device (KismetDevice): The device to check
-
-        Returns:
-            list[str]: MAC addresses of all connected access points
-        """
-        return [i for i in self.dot11.get("dot11.device.associated_client_map")]
-
-    def getHashes(self) -> str:
-        for handshake in self.dot11.get("dot11.device.wpa_handshake_list"):
-            return handshake.get('dot11.eapol.rsn_pmkid')
+from .KismetDevice import KismetDevice
 
 
 class KismetdbExtractError(Exception):
@@ -112,9 +53,9 @@ def getDevs(kismet_file: Path, devtype: list[str] = []) -> list[KismetDevice]:
     con = sqlite3.connect(kismet_file)
     cur = con.cursor()
     if not devtype or devtype == ["'all'"]:
-        query = 'select * from devices'
+        query = "select * from devices"
     else:
-        query = f'select * from devices where type in ({', '.join(devtype)})'
+        query = f"select * from devices where type in ({', '.join(devtype)})"
     cur.execute(query)
     devs = []
     for device in cur:
@@ -134,7 +75,7 @@ def getAPs(kismet_file: Path) -> list[KismetDevice]:
     Returns:
         list[dict]: A list of all the json dumps from all Wi-Fi Access Points in the db.
     """
-    APs = getDevs(kismet_file, ["Wi-Fi AP", 'Wi-Fi Bridged'])
+    APs = getDevs(kismet_file, ["Wi-Fi AP", "Wi-Fi Bridged"])
     return APs
 
 
@@ -152,11 +93,8 @@ def CheckFilepaths(Filepaths: list[Path]):
             raise FileNotFoundError(f"{path} does not exist.")
 
 
-
-
-
 def getBasePath() -> Path:
-    pathfile = './pathconfig.txt'
+    pathfile = "./pathconfig.txt"
     if os.path.exists(pathfile):
         with open(pathfile) as f:
             configured_path = f.readline()
@@ -165,6 +103,7 @@ def getBasePath() -> Path:
     home = os.path.expanduser("~")
     basepath = f"{home}/Data/"
     return Path(basepath)
+
 
 def findOUIMatches(kismet_file: Path, OUI_list: list[str]) -> list[KismetDevice]:
     """
@@ -176,15 +115,16 @@ def findOUIMatches(kismet_file: Path, OUI_list: list[str]) -> list[KismetDevice]
         list[KismetDevice]: Matching devices
     """
     OUI_list = [clean_OUI(i) for i in OUI_list]
-    OUI_list = ', '.join(OUI_list)
+    OUI_list = ", ".join(OUI_list)
     con = sqlite3.connect(kismet_file)
     cur = con.cursor()
-    query = f'select * from devices where substr(devmac,1,8) in ({OUI_list})'
+    query = f"select * from devices where substr(devmac,1,8) in ({OUI_list})"
     cur.execute(query)
     devs = []
     for device in cur:
         devs.append(extract_json(device))
     return devs
+
 
 def clean_OUI(oui: str) -> str:
     """
@@ -195,9 +135,9 @@ def clean_OUI(oui: str) -> str:
         str: Standard OUI formatted as AA:BB:CC
         '': Returns empty string if given mutilated str
     """
-    oui = re.sub(r'[^0-9a-fA-F]', '', oui)
+    oui = re.sub(r"[^0-9a-fA-F]", "", oui)
     oui = oui[:6]
     if len(oui) != 6:
-        return ''
-    oui = [oui[i:i+2] for i in range(0,6,2)]
-    return ':'.join(oui).upper()
+        return ""
+    oui = [oui[i : i + 2] for i in range(0, 6, 2)]
+    return ":".join(oui).upper()

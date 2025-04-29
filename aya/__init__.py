@@ -4,8 +4,8 @@ from .lib import (
     CheckFilepaths,
     getBasePath,
     getSTAs,
-    KismetDevice,
 )
+from .KismetDevice import KismetDevice
 
 __all__ = (
     "getDevs",
