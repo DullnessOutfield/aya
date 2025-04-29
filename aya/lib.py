@@ -9,6 +9,7 @@ from typing import Optional
 
 @dataclass
 class KismetDevice:
+    name: str
     mac: str
     devtype: str
     first_time: datetime
@@ -43,10 +44,11 @@ def extract_json(row: tuple) -> KismetDevice:
         real_json = json.loads(rawjson[3:-2])
     except json.decoder.JSONDecodeError as e:
         raise KismetdbExtractError(f"Failed to parse device; {e}")
+    name = real_json["kismet.device.base.commonname"]
     if "dot11.device" in real_json.keys():
         dot11 = real_json["dot11.device"]
-        return KismetDevice(mac, devtype, first_time, last_time, real_json, dot11)
-    return KismetDevice(mac, devtype, first_time, last_time, real_json)
+        return KismetDevice(name, mac, devtype, first_time, last_time, real_json, dot11)
+    return KismetDevice(name, mac, devtype, first_time, last_time, real_json)
 
 
 def getDevs(kismet_file: Path, devtype: list[str]) -> list[KismetDevice]:
@@ -131,10 +133,11 @@ def getDeviceProbeSSIDs(device: KismetDevice) -> list[str]:
                 if len(i["dot11.probedssid.ssid"]) > 0
             ]
             return SSIDs
+    return []
 
 
 def getDeviceConnectedAPs(device: KismetDevice) -> list[str]:
-    if device.dot11 is None:
-        return []
-    if "dot11.device.associated_client_map" in device.dot11.keys():
-        return [i for i in device.dot11["dot11.device.associated_client_map"]]
+    if device.dot11 is not None:
+        if "dot11.device.associated_client_map" in device.dot11.keys():
+            return [i for i in device.dot11["dot11.device.associated_client_map"]]
+    return []
