@@ -1,1 +1,6 @@
-from .lib import getAPs, CheckFilepaths, getAPclients, getBasePath, getSTAs
+from .lib import (getAPs, 
+    CheckFilepaths, 
+    getAPclients, 
+    getBasePath, 
+    getSTAs, 
+    getDeviceProbeSSIDs)

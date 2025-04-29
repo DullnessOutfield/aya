@@ -39,8 +39,8 @@ def getDevs(kismet_file: Path, devtype: list[str]) -> list[dict]:
     query = f'select * from devices where type in ({', '.join(devtype)})'
     cur.execute(query)
     devs = []
-    for dev in cur:
-        devs.append(extract_json(dev))
+    for device in cur:
+        devs.append(extract_json(device))
     return devs
 
 def getAPs(kismet_file: Path) -> list[dict]:
@@ -71,7 +71,6 @@ def CheckFilepaths(Filepaths: list[Path]):
     for path in Filepaths:
         if not os.path.exists(path):
             raise FileNotFoundError(f"{path} does not exist.")
-    return 0
 
 
 def getAPclients(device: dict) -> list:
@@ -87,10 +86,29 @@ def getAPclients(device: dict) -> list:
         if "dot11.device.associated_client_map" in device["dot11.device"].keys():
             Clients = [i for i in device["dot11.device"]["dot11.device.associated_client_map"]]
             return Clients
-    return None
+    return []
 
 def getBasePath() -> Path:
     home = os.path.expanduser("~")
     basepath = f"{home}/Data/"
     return Path(basepath)
 
+def getDeviceProbeSSIDs(device: dict) -> list[str]:
+    """
+    Takes a kismet device json and returns all the SSIDs that device has probed for
+    
+    Args:
+        device (dict): The json dump of the STA
+
+    Returns:
+        list[str]: All of the non-blank SSIDs in the device's probed_ssid_map
+    """
+    if 'dot11.device' in device.keys():
+        if 'dot11.device.probed_ssid_map' in device["dot11.device"].keys():
+            probe_map = device["dot11.device"]["dot11.device.probed_ssid_map"]
+            SSIDs = [i["dot11.probedssid.ssid"] for i in probe_map if len(i["dot11.probedssid.ssid"]) > 0]
+            return SSIDs
+
+def getDeviceConnectedAPs(device: dict) -> list[str]:
+    #TODO
+    return 0

@@ -76,7 +76,7 @@ def ProcessFile(kismet_devices) -> dict:
 
 def main():
     APs = {}
-    projects: list[Path] = [Path(basepath + project) for project in args.survey]
+    projects: list[Path] = [basepath / project for project in args.survey]
     aya.CheckFilepaths(projects)
     for project in projects:
         project_APs: dict = ProcessProject(project)
