@@ -14,7 +14,7 @@ def process_project(project_folder: Path):
     for kismet_file in project_folder.glob("**/*.kismet"):
         APs = aya.getAPs(kismet_file)
         for AP in APs:
-            handshake = AP.getHashes()
+            handshake = AP.hashes
             if handshake:
                 project_hashes[AP.mac] = {"Hash": handshake, "SSID": AP.name}
     return project_hashes

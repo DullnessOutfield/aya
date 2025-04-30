@@ -1,7 +1,7 @@
 from datetime import datetime
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
-
+from functools import cached_property
 
 @dataclass
 class KismetDevice:
@@ -13,7 +13,13 @@ class KismetDevice:
     json: dict
     dot11: Optional[dict] = None
 
-    def getDeviceProbeSSIDs(self) -> list[str]:
+    def __post_init__(self):
+        self.devtype = self.devtype.strip().strip("'")
+        if self.dot11 is None:
+            self.dot11 = {}
+
+    @cached_property
+    def probedSSIDs(self) -> list[str]:
         """
         Takes a kismet device json and returns all the SSIDs that device has probed for
 
@@ -24,7 +30,7 @@ class KismetDevice:
             list[str]: All of the non-blank SSIDs in the device's probed_ssid_map
         """
 
-        probe_map = self.dot11.get("dot11.device.probed_ssid_map")
+        probe_map = self.dot11.get("dot11.device.probed_ssid_map", {})
         SSIDs = [
             i[1]["dot11.probedssid.ssid"]
             for i in probe_map.items()
@@ -32,7 +38,8 @@ class KismetDevice:
         ]
         return SSIDs
 
-    def getAPclients(self) -> list:
+    @cached_property
+    def clients(self) -> list[str]:
         """
         Gets all the clients of a given Access Point
         Args:
@@ -41,20 +48,9 @@ class KismetDevice:
         Returns:
             list: A list of client MAC addresses
         """
-        Clients = [i for i in self.dot11.get("dot11.device.associated_client_map")]
-        return Clients
+        return [i for i in self.dot11.get("dot11.device.associated_client_map", {})]
 
-    def getDeviceConnectedAPs(self) -> list[str]:
-        """
-        Pulls any APs a device connected to during a survey
-        Args:
-            device (KismetDevice): The device to check
-
-        Returns:
-            list[str]: MAC addresses of all connected access points
-        """
-        return [i for i in self.dot11.get("dot11.device.associated_client_map")]
-
-    def getHashes(self) -> str:
-        for handshake in self.dot11.get("dot11.device.wpa_handshake_list"):
-            return handshake.get("dot11.eapol.rsn_pmkid")
+    @cached_property
+    def hashes(self) -> str:
+        hashes = [handshake.get("dot11.eapol.rsn_pmkid") for handshake in self.dot11.get("dot11.device.wpa_handshake_list", []) if handshake.get("dot11.eapol.rsn_pmkid")]
+        return hashes
