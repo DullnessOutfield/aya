@@ -56,7 +56,12 @@ def getDevs(kismet_file: Path, devtype: list[str] = []) -> list[KismetDevice]:
         query = "select * from devices"
     else:
         query = f"select * from devices where type in ({', '.join(devtype)})"
-    cur.execute(query)
+    try:
+        cur.execute(query)
+    except sqlite3.OperationalError as e:
+        print(f'WARNING: Failed to get devices from {kismet_file}')
+        print(e)
+        return []
     devs = []
     for device in cur:
         try:
