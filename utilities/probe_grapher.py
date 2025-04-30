@@ -4,37 +4,39 @@ import argparse
 import aya
 from aya import KismetDevice
 
-DESIRED_TYPES = ['Wi-Fi Device', 'Wi-Fi Client', 'Wi-Fi Bridged']
-BASEPATH = './Data/'
-
 parser = argparse.ArgumentParser()
-parser.add_argument("projects", nargs='+', default="folder1")
+parser.add_argument("projects", nargs="+", default="folder1")
 args = parser.parse_args()
 
 
-
 def ProcessProject(project: Path):
+    """
+    Iterate through project to grab all probe requests made by all devices
+    """
     project_dictionary = {}
-    for kismet_file in project.glob('**/*.kismet'):
+    for kismet_file in project.glob("**/*.kismet"):
         devices = aya.getSTAs(kismet_file)
         for device in devices:
             if device.mac not in project_dictionary:
                 project_dictionary[device.mac] = device.probedSSIDs
             else:
                 project_dictionary[device.mac] += device.probedSSIDs
-    project_dictionary = {i:project_dictionary[i]\
-                        for i in project_dictionary\
-                        if len(project_dictionary[i]) > 0}
+    project_dictionary = {
+        i: project_dictionary[i]
+        for i in project_dictionary
+        if len(project_dictionary[i]) > 0
+    }
     return project_dictionary
 
+
 def GetNodeData(dev: KismetDevice):
-    devnode = {        'NAME': dev.name,
-                       'MAC': dev.mac,
-                       'SSID': dev.probedSSIDs}
+    devnode = {"NAME": dev.name, "MAC": dev.mac, "SSID": dev.probedSSIDs}
     return devnode
+
 
 def isProbeSubset(mac1, mac2):
     return set(mac1).issubset(set(mac2))
+
 
 def PruneDict(file_dictionary):
     """Remove keys whose value list is a subset of another's in the same dict."""
@@ -43,13 +45,20 @@ def PruneDict(file_dictionary):
     for i in range(len(keys)):
         for j in range(len(keys)):
             set(file_dictionary[keys[i]])
-            if i != j and isProbeSubset(file_dictionary[keys[i]], file_dictionary[keys[j]]):
+            if i != j and isProbeSubset(
+                file_dictionary[keys[i]], file_dictionary[keys[j]]
+            ):
                 to_remove.add(keys[i])
     return {k: v for k, v in file_dictionary.items() if k not in to_remove}
 
 
 def GenerateGraph(overall_dict):
-    output = Path(aya.getBasePath() / 'graph.gml')
+    """
+    Generate a gml graph based on probe requests, writes to basepath as 'graph.gml'
+    Args:
+        overall_dict (dict): Refer to main() and ProcessProject()
+    """
+    output = Path(aya.getBasePath() / "graph.gml")
     Graph = nx.Graph()
     ssid_nodes = set()
     for project_name, project_dict in overall_dict.items():
@@ -59,10 +68,11 @@ def GenerateGraph(overall_dict):
 
             for ssid in node:
                 if ssid not in ssid_nodes:
-                    Graph.add_node(ssid, label=ssid, type='ssid')
+                    Graph.add_node(ssid, label=ssid, type="ssid")
                     ssid_nodes.add(ssid)
                 Graph.add_edge(mac, ssid)
     nx.write_gml(Graph, output)
+
 
 def main():
     basepath = aya.getBasePath()
@@ -72,7 +82,7 @@ def main():
     for project in projects:
         nodes[project.name] = ProcessProject(project)
     GenerateGraph(nodes)
-    
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
