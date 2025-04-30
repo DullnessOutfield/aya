@@ -18,28 +18,15 @@ All_SSIDs = []
 dictionary = {}
 
 def ProcessProject(project: Path):
+    project_dictionary = {}
     for kismet_file in project.glob('**/*.kismet'):
         devices = aya.getSTAs(kismet_file)
-
-
-def ProjectSummary(project_name, directory):
-    project_dictionary = {}
-    for i in glob(directory+'/**/*.kismet', recursive=True):
-        print('Checking Probes in',i)
-        try:
-            devices = kismetdb.Devices(i).get_all()
-        except:
-            devices = FallbackDecode(i)
-        for idx,device in enumerate(devices):
-            if device['type'] in DESIRED_TYPES:
-                MAC = device['devmac']
-                if MAC not in project_dictionary:
-                    node = GetNodeData(device)
-                    project_dictionary[MAC] = node
-                else:
-                    SSID_List = device.GetProbes()
-                    project_dictionary[MAC]['SSID'] += SSID_List
-
+        for device in devices:
+            if device.mac not in project_dictionary:
+                node = GetNodeData(device)
+                project_dictionary[device.mac] = node
+            else:
+                project_dictionary[device.mac]['SSID'] += device.probedSSIDs
     project_dictionary = {i:project_dictionary[i]\
                         for i in project_dictionary\
                         if len(project_dictionary[i]['SSID']) > 0}
@@ -52,18 +39,11 @@ def ProjectSummary(project_name, directory):
                         for i in project_dictionary}
     return project_hashdict
 
-def GetNodeData(devin):
-    MACadd = devin['devmac']
-    device_data = json.loads(devin['device'])
-    name = device_data["kismet.device.base.commonname"]
-    OUI = getOUI(MACadd)
-    dot11 = device_data['dot11.device']
-    SSID_List = GetProbes(devin)
+def GetNodeData(dev: KismetDevice):
     devnode = {'ID': len(dictionary),
-                       'NAME': name,
-                       'OUI': OUI,
-                       'MAC': MACadd,
-                       'SSID': SSID_List}
+                       'NAME': dev.name,
+                       'MAC': dev.mac,
+                       'SSID': dev.probedSSIDs}
     return devnode
                     
 def GenerateGraph(device_dictionary, SSID_dictionary):    
@@ -85,6 +65,7 @@ def GenerateGraph(device_dictionary, SSID_dictionary):
     nx.write_gml(G,'test.gml')
 
 def main():
+    basepath = aya.getBasePath()
     nodes = {}
     projects: list[Path] = [basepath / project for project in args.project]
     aya.CheckFilepaths(projects)
