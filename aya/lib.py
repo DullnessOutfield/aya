@@ -3,6 +3,7 @@ import json
 import os
 import re
 from pathlib import Path
+from datetime import datetime
 from .KismetDevice import KismetDevice
 
 
@@ -23,8 +24,8 @@ def extract_json(row: tuple) -> KismetDevice:
         KismetdbExtractError: If the JSON data cannot be parsed.
     """
     row = str(row).split(",", 14)
-    first_time = row[0]
-    last_time = row[1]
+    first_time = datetime.fromtimestamp(row[0])
+    last_time = datetime.fromtimestamp(row[1])
     mac = row[4]
     devtype = row[-2]
     rawjson = row[-1]
@@ -59,7 +60,7 @@ def getDevs(kismet_file: Path, devtype: list[str] = []) -> list[KismetDevice]:
     try:
         cur.execute(query)
     except sqlite3.OperationalError as e:
-        print(f'WARNING: Failed to get devices from {kismet_file}')
+        print(f"WARNING: Failed to get devices from {kismet_file}")
         print(e)
         return []
     devs = []
