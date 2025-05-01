@@ -41,14 +41,16 @@ def isProbeSubset(mac1, mac2):
 def PruneDict(file_dictionary):
     """Remove keys whose value list is a subset of another's in the same dict."""
     keys = list(file_dictionary.keys())
+    sets = {k: set(v) for k, v in file_dictionary.items()}
     to_remove = set()
+
+    keys.sort(key=lambda k: len(sets[k]))
+
     for i in range(len(keys)):
-        for j in range(len(keys)):
-            set(file_dictionary[keys[i]])
-            if i != j and isProbeSubset(
-                file_dictionary[keys[i]], file_dictionary[keys[j]]
-            ):
+        for j in range(i + 1, len(keys)):  
+            if sets[keys[i]].issubset(sets[keys[j]]):
                 to_remove.add(keys[i])
+ 
     return {k: v for k, v in file_dictionary.items() if k not in to_remove}
 
 
