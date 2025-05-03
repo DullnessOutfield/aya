@@ -1,22 +1,31 @@
 from datetime import datetime
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, Dict, Any
 from functools import cached_property
+from .classes import WiFiDevice
+
 
 @dataclass
-class KismetDevice:
-    name: str
-    mac: str
-    devtype: str
-    first_time: datetime
-    last_time: datetime
-    json: dict
-    dot11: Optional[dict] = None
+class KismetDevice(WiFiDevice):
+    """Kismet-detected WiFi device with additional metadata."""
+
+    first_time: Optional[datetime] = None
+    last_time: Optional[datetime] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    dot11: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
-        self.devtype = self.devtype.strip().strip("'")
-        if self.dot11 is None:
-            self.dot11 = {}
+        """Clean up device type formatting."""
+        if self.device_type:
+            self.device_type = self.device_type.strip().strip("'")
+
+    @property
+    def mac(self) -> str:
+        return self.identifier
+
+    @property
+    def json(self) -> dict:
+        return self.metadata
 
     @cached_property
     def probedSSIDs(self) -> list[str]:
@@ -52,5 +61,14 @@ class KismetDevice:
 
     @cached_property
     def hashes(self) -> str:
-        hashes = [handshake.get("dot11.eapol.rsn_pmkid") for handshake in self.dot11.get("dot11.device.wpa_handshake_list", []) if handshake.get("dot11.eapol.rsn_pmkid")]
+        hashes = [
+            handshake.get("dot11.eapol.rsn_pmkid")
+            for handshake in self.dot11.get("dot11.device.wpa_handshake_list", [])
+            if handshake.get("dot11.eapol.rsn_pmkid")
+        ]
         return hashes
+
+
+def create_kismet_device(mac_address: str, **kwargs) -> KismetDevice:
+    """Create a Kismet device using a MAC address as the identifier."""
+    return KismetDevice(identifier=mac_address, **kwargs)

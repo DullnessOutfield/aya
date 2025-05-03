@@ -4,7 +4,7 @@ import os
 import re
 from pathlib import Path
 from datetime import datetime
-from .KismetDevice import KismetDevice
+from .KismetDevice import KismetDevice, create_kismet_device
 
 
 class KismetdbExtractError(Exception):
@@ -35,6 +35,14 @@ def extract_json(row: tuple) -> KismetDevice:
         raise KismetdbExtractError(f"Failed to parse device; {e}")
     name = real_json["kismet.device.base.commonname"]
     dot11 = real_json.get("dot11.device")
+    dev = create_kismet_device(
+        mac,
+        first_time=first_time,
+        last_time=last_time,
+        device_type=devtype,
+        metadata=real_json,
+    )
+    return dev
     return KismetDevice(name, mac, devtype, first_time, last_time, real_json, dot11)
 
 
@@ -68,7 +76,7 @@ def getDevs(kismet_file: Path, devtype: list[str] = []) -> list[KismetDevice]:
         try:
             devs.append(extract_json(device))
         except Exception as e:
-            print(f'{e}')
+            print(f"{e}")
     return devs
 
 
