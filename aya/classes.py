@@ -30,7 +30,9 @@ class WirelessDevice(Device):
 class WiFiDevice(WirelessDevice):
     """WiFi device with a MAC address as its identifier."""
 
-    # No new fields, the MAC is the identifier
+    @property
+    def mac(self):
+        return self.identifier
 
 
 @dataclass
@@ -46,6 +48,8 @@ class KismetDevice(WiFiDevice):
         """Clean up device type formatting."""
         if self.device_type:
             self.device_type = self.device_type.strip().strip("'")
+        self.dot11 = self.metadata.get("dot11.device", {})
+        self.name = self.metadata.get("kismet.device.base.commonname", self.mac)
 
 
 # Simple factory function to create devices from MAC addresses

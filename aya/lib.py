@@ -2,13 +2,11 @@ import sqlite3
 import json
 import os
 import re
+import logging
 from pathlib import Path
 from datetime import datetime
 from .KismetDevice import KismetDevice, create_kismet_device
 
-
-class KismetdbExtractError(Exception):
-    pass
 
 
 def extract_json(row: tuple) -> KismetDevice:
@@ -21,7 +19,7 @@ def extract_json(row: tuple) -> KismetDevice:
         KismetDevice: The parsed JSON data as a KismetDevice object.
 
     Raises:
-        KismetdbExtractError: If the JSON data cannot be parsed.
+        JSONDecodeError: If the JSON data cannot be parsed.
     """
     row = str(row).split(",", 14)
     first_time = datetime.fromtimestamp(int(row[0][1:]))
@@ -32,9 +30,7 @@ def extract_json(row: tuple) -> KismetDevice:
     try:
         real_json = json.loads(rawjson[3:-2])
     except json.decoder.JSONDecodeError as e:
-        raise KismetdbExtractError(f"Failed to parse device; {e}")
-    name = real_json["kismet.device.base.commonname"]
-    dot11 = real_json.get("dot11.device")
+        raise e
     dev = create_kismet_device(
         mac,
         first_time=first_time,
@@ -43,7 +39,6 @@ def extract_json(row: tuple) -> KismetDevice:
         metadata=real_json,
     )
     return dev
-    return KismetDevice(name, mac, devtype, first_time, last_time, real_json, dot11)
 
 
 def getDevs(kismet_file: Path, devtype: list[str] = []) -> list[KismetDevice]:
@@ -55,6 +50,9 @@ def getDevs(kismet_file: Path, devtype: list[str] = []) -> list[KismetDevice]:
 
     Returns:
         list[dict]: A list of all the json dumps from all Wi-Fi Access Points in the db.
+
+    Raises:
+        sqlite3.OperationalError: If the query fails for whatever reason
     """
     if type(devtype) is str:
         devtype = [devtype]
@@ -68,15 +66,14 @@ def getDevs(kismet_file: Path, devtype: list[str] = []) -> list[KismetDevice]:
     try:
         cur.execute(query)
     except sqlite3.OperationalError as e:
-        print(f"WARNING: Failed to get devices from {kismet_file}")
-        print(e)
-        return []
+        raise e
     devs = []
     for device in cur:
         try:
-            devs.append(extract_json(device))
-        except Exception as e:
-            print(f"{e}")
+            dev = extract_json(device)
+            devs.append(dev)
+        except json.decoder.JSONDecodeError as e:
+            logging.warning(f'Error decoding device: {e}')
     return devs
 
 
