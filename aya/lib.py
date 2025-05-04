@@ -8,7 +8,6 @@ from datetime import datetime
 from .KismetDevice import KismetDevice, create_kismet_device
 
 
-
 def extract_json(row: tuple) -> KismetDevice:
     """
     Extracts and parses the JSON data from a Kismet database device row.
@@ -30,7 +29,8 @@ def extract_json(row: tuple) -> KismetDevice:
     try:
         real_json = json.loads(rawjson[3:-2])
     except json.decoder.JSONDecodeError as e:
-        raise e
+        real_json = {}
+        logging.warning(f"Error decoding {mac}: {e}")
     dev = create_kismet_device(
         mac,
         first_time=first_time,
@@ -52,8 +52,11 @@ def getDevs(kismet_file: Path, devtype: list[str] = []) -> list[KismetDevice]:
         list[dict]: A list of all the json dumps from all Wi-Fi Access Points in the db.
 
     Raises:
+        FileNotFoundError: if kismet_file does not exist
         sqlite3.OperationalError: If the query fails for whatever reason
     """
+    if not os.path.exists(kismet_file):
+        raise FileNotFoundError(f"File not found: {kismet_file}")
     if type(devtype) is str:
         devtype = [devtype]
     devtype = [f"'{i}'" for i in devtype]
@@ -73,7 +76,7 @@ def getDevs(kismet_file: Path, devtype: list[str] = []) -> list[KismetDevice]:
             dev = extract_json(device)
             devs.append(dev)
         except json.decoder.JSONDecodeError as e:
-            logging.warning(f'Error decoding device: {e}')
+            logging.warning(f"Error decoding device: {e}")
     return devs
 
 
@@ -124,13 +127,21 @@ def findOUIMatches(kismet_file: Path, OUI_list: list[str]) -> list[KismetDevice]
         OUI_list (list[str]): list of MAC addresses or OUIs to be matched to
     Returns:
         list[KismetDevice]: Matching devices
+    Raises:
+        FileNotFoundError: if kismet_file does not exist
+        sqlite3.OperationalError: if query fails to run
     """
+    if not os.path.exists(kismet_file):
+        raise FileNotFoundError(f"File not found: {kismet_file}")
     OUI_list = [clean_OUI(i) for i in OUI_list]
     OUI_list = ", ".join(OUI_list)
     con = sqlite3.connect(kismet_file)
     cur = con.cursor()
     query = f"select * from devices where substr(devmac,1,8) in ({OUI_list})"
-    cur.execute(query)
+    try:
+        cur.execute(query)
+    except sqlite3.OperationalError as e:
+        raise e
     devs = []
     for device in cur:
         devs.append(extract_json(device))
