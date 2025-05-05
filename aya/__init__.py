@@ -6,7 +6,7 @@ from .lib import (
     getSTAs,
 )
 from .KismetDevice import KismetDevice
-
+from .rest import Connection
 __all__ = (
     "getDevs",
     "getAPs",
@@ -14,4 +14,5 @@ __all__ = (
     "getBasePath",
     "getSTAs",
     "KismetDevice",
+    "Connection",
 )

@@ -5,9 +5,13 @@ build/
 dist/
 wheels/
 *.egg-info
+.ruff_cache
+.python-version
 
 # Virtual environments
 .venv
 
 # Config File
 pathconfig.txt
+test_connection.json
+mock_data
