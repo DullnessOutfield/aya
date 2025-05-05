@@ -1,6 +1,9 @@
 from datetime import datetime
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Any
+from pathlib import Path
+from functools import cached_property
+from typing import Optional, List, Dict, Tuple, Any
+from .lib import getDevs
 
 
 @dataclass
@@ -51,6 +54,36 @@ class KismetDevice(WiFiDevice):
         self.dot11 = self.metadata.get("dot11.device", {})
         self.name = self.metadata.get("kismet.device.base.commonname", self.mac)
 
+
+@dataclass
+class Survey:
+    path: Path
+    name: str
+    location: Tuple[float, float] = field(default_factory=tuple)
+    devices: List[KismetDevice] = field(default_factory=list)
+
+    def __post_init__(self):
+        if not self.name:
+            self.name = self.path.stem
+
+    def get_devices(self) -> List[KismetDevice]:
+        self.devices = getDevs(self.path)
+
+    @cached_property
+    def access_points(self) -> List[KismetDevice]:
+        return [device for device in self.devices if device.device_type in ('Wi-Fi AP', 'Wi-Fi Bridged')]
+
+class Project:
+    name: str
+    surveys: List[Survey] = field(default_factory=list)
+
+    @property
+    def all_devices(self) -> List[KismetDevice]:
+        """Get all devices across all surveys"""
+        devices = []
+        for survey in self.surveys:
+            devices.extend(survey.devices)
+        return devices
 
 # Simple factory function to create devices from MAC addresses
 def create_wifi_device(mac_address: str, **kwargs) -> WiFiDevice:
