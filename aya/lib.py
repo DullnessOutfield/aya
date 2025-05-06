@@ -20,14 +20,14 @@ def extract_json(row: tuple) -> KismetDevice:
     Raises:
         JSONDecodeError: If the JSON data cannot be parsed.
     """
-    row = str(row).split(",", 14)
-    first_time = datetime.fromtimestamp(int(row[0][1:]))
-    last_time = datetime.fromtimestamp(int(row[1][1:]))
+
+    first_time = datetime.fromtimestamp(int(row[0]))
+    last_time = datetime.fromtimestamp(int(row[1]))
     mac = row[4]
-    devtype = row[-2]
-    rawjson = row[-1]
+    devtype = row[13]
+    rawjson = row[14]
     try:
-        real_json = json.loads(rawjson[3:-2])
+        real_json = json.loads(rawjson)
     except json.decoder.JSONDecodeError as e:
         real_json = {}
         logging.warning(f"Error decoding {mac}: {e}")
