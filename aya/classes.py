@@ -1,6 +1,7 @@
 from datetime import datetime
 from dataclasses import dataclass, field
 from pathlib import Path
+import json
 from functools import cached_property
 from typing import Optional, List, Dict, Tuple, Any
 from .lib import getDevs
@@ -71,7 +72,12 @@ class Survey:
 
     @cached_property
     def access_points(self) -> List[KismetDevice]:
-        return [device for device in self.devices if device.device_type in ('Wi-Fi AP', 'Wi-Fi Bridged')]
+        return [
+            device
+            for device in self.devices
+            if device.device_type in ("Wi-Fi AP", "Wi-Fi Bridged")
+        ]
+
 
 class Project:
     name: str
@@ -85,6 +91,7 @@ class Project:
             devices.extend(survey.devices)
         return devices
 
+
 # Simple factory function to create devices from MAC addresses
 def create_wifi_device(mac_address: str, **kwargs) -> WiFiDevice:
     """Create a WiFi device using a MAC address as the identifier."""
@@ -94,6 +101,22 @@ def create_wifi_device(mac_address: str, **kwargs) -> WiFiDevice:
 def create_kismet_device(mac_address: str, **kwargs) -> KismetDevice:
     """Create a Kismet device using a MAC address as the identifier."""
     return KismetDevice(identifier=mac_address, **kwargs)
+
+
+def device_from_json(device_json: str) -> KismetDevice:
+    data = json.loads(device_json)
+    mac = data.get("kismet.device.base.macaddr")
+    first_time = data.get("kismet.device.base.first_time")
+    last_time = data.get("kismet.device.base.last_time")
+    devtype = data.get("kismet.device.base.type")
+    dev = create_kismet_device(
+        mac,
+        first_time=first_time,
+        last_time=last_time,
+        device_type=devtype,
+        metadata=data,
+    )
+    return dev
 
 
 # Test the implementation

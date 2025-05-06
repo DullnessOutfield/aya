@@ -3,6 +3,7 @@ import json
 import requests
 import aya
 import kismet_rest
+from aya import KismetDevice
 
 
 def load_macs_from_file(filename):
@@ -22,22 +23,24 @@ def cmd_devs(devices, args):
     return devs
 
 
-def activeDevices(devices, fromTime):
+def activeDevices(devices, fromTime) -> list[KismetDevice]:
     active_devices = devices.all(ts=fromTime)
-    macs = [i["kismet.device.base.macaddr"] for i in active_devices]
+    macs = [(aya.KismetDevice.device_from_json(i)) for i in active_devices]
     return macs
 
 
 try:
-    connection_parameters = aya.rest.connection_from_config("./mock_data/test_connection.json")
-    user = connection_parameters['username']
-    passw = connection_parameters['password']
+    connection_parameters = aya.rest.connection_from_config(
+        "./mock_data/test_connection.json"
+    )
+    user = connection_parameters["username"]
+    passw = connection_parameters["password"]
 except FileNotFoundError:
     user = "username"
     passw = "password"
 
 
-devices = kismet_rest.Devices(username = user, password = passw)
+devices = kismet_rest.Devices(username=user, password=passw)
 devfile = "./mock_data/all-dev.txt"
 soifile = "./mock_data/all-soi.txt"
 
