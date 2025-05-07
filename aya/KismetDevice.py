@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from typing import Optional, Dict, Any
 from functools import cached_property
 from .classes import WiFiDevice
+import json
 
 
 @dataclass
@@ -72,7 +73,37 @@ class KismetDevice(WiFiDevice):
         ]
         return hashes
 
+    def create_kismet_device(mac_address: str, **kwargs):
+        return KismetDevice(identifier=mac_address, **kwargs)
+
+    def from_json(device_json: str):
+        if type(device_json) is str:
+            data = json.loads(device_json)
+        else:
+            data = device_json
+        mac = data.get("kismet.device.base.macaddr")
+        first_time = data.get("kismet.device.base.first_time")
+        last_time = data.get("kismet.device.base.last_time")
+        devtype = data.get("kismet.device.base.type")
+        dev = create_kismet_device(
+            mac,
+            first_time=first_time,
+            last_time=last_time,
+            device_type=devtype,
+            metadata=data,
+        )
+        return dev
+
 
 def create_kismet_device(mac_address: str, **kwargs) -> KismetDevice:
     """Create a Kismet device using a MAC address as the identifier."""
     return KismetDevice(identifier=mac_address, **kwargs)
+
+
+if __name__ == "__main__":
+    x = create_kismet_device(
+        mac_address="aabbccddeeff", name="MyDevice", device_type="Client"
+    )
+
+    print(f"x.identifier: {x.identifier}")
+    print(f"x.identifier: {x.mac_address}")

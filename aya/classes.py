@@ -1,9 +1,6 @@
 from datetime import datetime
 from dataclasses import dataclass, field
-from pathlib import Path
-import json
-from functools import cached_property
-from typing import Optional, List, Dict, Tuple, Any
+from typing import Optional, List, Dict, Any
 
 
 @dataclass
@@ -59,35 +56,3 @@ class KismetDevice(WiFiDevice):
 def create_wifi_device(mac_address: str, **kwargs) -> WiFiDevice:
     """Create a WiFi device using a MAC address as the identifier."""
     return WiFiDevice(identifier=mac_address, **kwargs)
-
-
-def create_kismet_device(mac_address: str, **kwargs) -> KismetDevice:
-    """Create a Kismet device using a MAC address as the identifier."""
-    return KismetDevice(identifier=mac_address, **kwargs)
-
-
-def device_from_json(device_json: str) -> KismetDevice:
-    data = json.loads(device_json)
-    mac = data.get("kismet.device.base.macaddr")
-    first_time = data.get("kismet.device.base.first_time")
-    last_time = data.get("kismet.device.base.last_time")
-    devtype = data.get("kismet.device.base.type")
-    dev = create_kismet_device(
-        mac,
-        first_time=first_time,
-        last_time=last_time,
-        device_type=devtype,
-        metadata=data,
-    )
-    return dev
-
-
-# Test the implementation
-if __name__ == "__main__":
-    # Create a KismetDevice with a MAC address as the identifier
-    x = create_kismet_device(
-        mac_address="aabbccddeeff", name="MyDevice", device_type="Client"
-    )
-
-    print(f"x.identifier: {x.identifier}")  # This will be the MAC address
-    print(f"x.identifier: {x.mac_address}")  # This will be the MAC address
