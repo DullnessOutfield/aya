@@ -3,6 +3,7 @@ import json
 import os
 import re
 import logging
+import itertools
 from pathlib import Path
 from datetime import datetime
 from .KismetDevice import KismetDevice, create_kismet_device
@@ -163,3 +164,71 @@ def clean_OUI(oui: str) -> str:
         return ""
     oui = [oui[i : i + 2] for i in range(0, 6, 2)]
     return ":".join(oui).upper()
+
+def Generate24GChannels():
+    channel_map = {}
+    for i in range(1,14):
+        freq = 2407+(i*5)
+        freqwidth = 11
+        channel_map[i] = {"center":freq, "range":[freq-freqwidth,freq+freqwidth]}
+    return channel_map
+
+def Generate5GChannels():
+    channelwidths=[[[180, 182, 184, 187, 189],10],\
+                   [[34, 38, 46, 54, 62, 102, 110, 118, 126, 134, 142, 151, 159, 167, 175],40],\
+                   [[42, 58, 106, 122, 138, 155, 171],80],\
+                   [[50, 114, 163],160]]
+
+    channelwidths.append([[i for i in range(200)\
+                          if i not in\
+                          list(itertools.chain(channelwidths[0][0]\
+                                               ,channelwidths[1][0]\
+                                               ,channelwidths[2][0]\
+                                               ,channelwidths[3][0]))],20])
+    for i in channelwidths:
+        print(i)
+    
+
+    channel_map = {}
+    for i in range(200):
+        freq = (i*5)+5000
+        for channelwidth in channelwidths:
+            if i in channelwidth[0]:
+                freqwidth = int(channelwidth[1]*.5)
+        channel_map[i] = {"center":freq, "range":[freq-freqwidth,freq+freqwidth]}
+        #print(i,freq)
+    return channel_map
+
+def get_freq_data(kismet_file: Path):
+    freqcount = {}
+    con = sqlite3.connect(kismet_file)
+    cur = con.cursor()
+    for j in cur.execute('select frequency, count(frequency) from packets where frequency > 0 group by frequency'):
+        j = list(j)
+        j[0] = int(j[0]*(10**-3))
+        if j[0] not in freqcount:
+            freqcount[j[0]] = j[1]
+        else:
+            freqcount[j[0]] += j[1]
+    return freqcount
+
+def channel_count(kismet_file: Path):
+    freqcount = get_freq_data(kismet_file)
+    channelmap5G = Generate5GChannels()
+    channelmap24G = Generate24GChannels()
+    channel_map = {}
+
+
+    for channel in channelmap5G:
+        for i in freqcount:
+            if channelmap5G[channel]['center'] == i:
+                channel_map[channel] = freqcount[i]
+        else:
+            channel_map[channel] = 0
+                
+    for i,j in enumerate(freqcount):
+        if j < 3000:
+            for channel in channelmap24G:
+                if channelmap24G[channel]['center'] == j:
+                    channel_map[channel] = freqcount[j]
+    return channel_map

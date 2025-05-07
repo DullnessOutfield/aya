@@ -48,6 +48,10 @@ class KismetDevice(WiFiDevice):
         return SSIDs
 
     @cached_property
+    def probehash(self):
+        return hash(tuple(self.probedSSIDs))
+
+    @cached_property
     def clients(self) -> list[str]:
         """
         Gets all the clients of a given Access Point
