@@ -3,8 +3,7 @@
 """Python setup."""
 import os
 import re
-from setuptools import setup
-
+from setuptools import setup, find_packages
 
 def read(file_name):
     """Return the contents of a file as a string."""
@@ -26,8 +25,9 @@ setup(name="aya",
       description="Collection of utilities to assist with Kismet analysis",
       url="https://github.com/DullnessOutfield/aya",
       download_url="https://github.com/DullnessOutfield/aya",
-      packages=["aya"],
-      install_requires="kismet_rest",
+      packages=find_packages(),
+      install_requires=["kismet_rest", "requests >= 2.20"],
+      setup_requires=["kismet_rest", "requests >= 2.20"],
       classifiers=['Development Status :: 3 - Alpha',
           "Intended Audience :: Developers",
           "Operating System :: POSIX :: Linux",
