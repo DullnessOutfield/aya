@@ -16,3 +16,6 @@ __all__ = (
     "KismetDevice",
     "Connection",
 )
+
+__author__ = 'DullnessOutfield'
+__version__ = "2025.05.07"
