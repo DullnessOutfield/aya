@@ -3,7 +3,7 @@
 """Python setup."""
 import os
 import re
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 def read(file_name):
@@ -20,14 +20,16 @@ def get_version():
     ver = rx_compiled.search(raw_init_file).group(1)
     return ver
 
+
 setup(name="aya",
       version=get_version(),
       author="DullnessOutfield",
       description="Collection of utilities to assist with Kismet analysis",
       url="https://github.com/DullnessOutfield/aya",
       download_url="https://github.com/DullnessOutfield/aya",
-      packages=["aya"],
-      install_requires=["kismet_rest","requests"],
+      packages=find_packages(),
+      install_requires=["kismet_rest", "requests >= 2.20"],
+      setup_requires=["kismet_rest", "requests >= 2.20"],
       classifiers=['Development Status :: 3 - Alpha',
           "Intended Audience :: Developers",
           "Operating System :: POSIX :: Linux",
