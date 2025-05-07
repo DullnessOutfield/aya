@@ -2,8 +2,6 @@
 name = "aya"
 version = "0.2.0"
 description = "Collection of utilities to assist with Kismet analysis"
-version = "0.2.0"
-description = "Collection of utilities to assist with Kismet analysis"
 readme = "README.md"
 requires-python = ">=3.13"
 
