@@ -1,7 +1,11 @@
 [project]
 name = "aya"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.2.0"
+description = "Collection of utilities to assist with Kismet analysis"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+
+dependencies = [
+    "kismet_rest",
+    "requests>=2.20",
+]

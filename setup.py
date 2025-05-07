@@ -15,8 +15,8 @@ def read(file_name):
 
 def get_version():
     """Return the version of this module."""
-    raw_init_file = read("aya/__init__.py")
-    rx_compiled = re.compile(r"\s*__version__\s*=\s*\"(\S+)\"")
+    raw_init_file = read("pyproject.toml")
+    rx_compiled = re.compile(r"\s*version\s*=\s*\"(\S+)\"")
     ver = rx_compiled.search(raw_init_file).group(1)
     return ver
 
