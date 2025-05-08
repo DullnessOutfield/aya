@@ -1,11 +1,42 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "aya"
-version = "0.2.0"
-description = "Collection of utilities to assist with Kismet analysis"
+version = "0.1.0"
+description = "Collection of tools/libraries to assist with Kismet analysis"
 readme = "README.md"
-requires-python = ">=3.13"
+authors = [
+    {name = "DullnessOutfield"}
+]
+requires-python = ">=3.9"
 
 dependencies = [
     "kismet_rest",
     "requests>=2.20",
 ]
+
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11", 
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/DullnessOutfield/aya"
+"Bug Tracker" = "https://github.com/DullnessOutfield/aya/issues"
+
+[tool.setuptools]
+packages = ["aya", "aya.tools"]
+
+[project.scripts]
+aya-apntr = "aya.tools.APNTR:main"
+aya-aplister-finder = "aya.tools.APLister2:main"
+aya-probegraph = "aya.tools.probe_grapher:main"
+aya-commondevices = "aya.tools.WITWIJO:main"
