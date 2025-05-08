@@ -1,6 +1,6 @@
 from datetime import datetime
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 
 
 @dataclass
@@ -33,23 +33,6 @@ class WiFiDevice(WirelessDevice):
     @property
     def mac(self):
         return self.identifier
-
-
-@dataclass
-class KismetDevice(WiFiDevice):
-    """Kismet-detected WiFi device with additional metadata."""
-
-    first_time: Optional[datetime] = None
-    last_time: Optional[datetime] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    dot11: Dict[str, Any] = field(default_factory=dict)
-
-    def __post_init__(self):
-        """Clean up device type formatting."""
-        if self.device_type:
-            self.device_type = self.device_type.strip().strip("'")
-        self.dot11 = self.metadata.get("dot11.device", {})
-        self.name = self.metadata.get("kismet.device.base.commonname", self.mac)
 
 
 # Simple factory function to create devices from MAC addresses

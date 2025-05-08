@@ -16,9 +16,13 @@ class KismetDevice(WiFiDevice):
     dot11: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
-        """Clean up device type formatting."""
         if self.device_type:
             self.device_type = self.device_type.strip().strip("'")
+
+        self.dot11 = self.metadata.get("dot11.device", {})
+
+        if not self.name:
+            self.name = self.metadata.get("kismet.device.base.commonname", self.mac)
 
     @property
     def mac(self) -> str:
@@ -43,13 +47,14 @@ class KismetDevice(WiFiDevice):
         probe_map = self.dot11.get("dot11.device.probed_ssid_map", {})
         SSIDs = [
             i["dot11.probedssid.ssid"]
-            for i in probe_map
+            for _, i in probe_map.items()
             if len(i["dot11.probedssid.ssid"]) > 0
         ]
         return SSIDs
 
     @cached_property
     def probehash(self):
+        """A hash of the probed SSIDs to speed up comparison"""
         return hash(tuple(self.probedSSIDs))
 
     @cached_property
@@ -76,8 +81,10 @@ class KismetDevice(WiFiDevice):
     def create_kismet_device(mac_address: str, **kwargs):
         return KismetDevice(identifier=mac_address, **kwargs)
 
-    def from_json(device_json: str):
-        if type(device_json) is str:
+    @classmethod
+    def from_json(cls, device_json):
+        """Create a KismetDevice instance from JSON data."""
+        if isinstance(device_json, str):
             data = json.loads(device_json)
         else:
             data = device_json
@@ -85,14 +92,14 @@ class KismetDevice(WiFiDevice):
         first_time = data.get("kismet.device.base.first_time")
         last_time = data.get("kismet.device.base.last_time")
         devtype = data.get("kismet.device.base.type")
-        dev = create_kismet_device(
+
+        return create_kismet_device(
             mac,
             first_time=first_time,
             last_time=last_time,
             device_type=devtype,
             metadata=data,
         )
-        return dev
 
 
 def create_kismet_device(mac_address: str, **kwargs) -> KismetDevice:
