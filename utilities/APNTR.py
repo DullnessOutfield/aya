@@ -8,59 +8,48 @@ parser.add_argument("survey", nargs="+", default="")
 args = parser.parse_args()
 
 
-
-
 def GetAPs(Folder: Path):
     clients: dict = {}
     for file in Folder.glob("**/*.kismet"):
-        file_dict: dict = parseKismetdb(file, clients)
-        merge_dicts(clients, file_dict)
+        devs = aya.getSTAs(file)
+        merge_project_dicts(clients, devs)
     return clients
 
 
-def parseKismetdb(file: Path, file_dict: dict) -> dict:
-    devs = aya.getSTAs(file)
-    for dev in devs:
-        file_dict = merge_device(file_dict, dev)
-    return file_dict
-
-def merge_dicts(master: dict, new: dict) -> dict:
-    for name,entry in new.items():
-        probes = entry['Probes']
-        APs = entry['APs']
-        master = merge_entry(master,name,probes,APs)
+def merge_project_dicts(master: dict, devs: list[KismetDevice]) -> dict:
+    for device in devs:
+        master = merge_device(master, device)
     return master
 
-def merge_device(clients: dict, device: KismetDevice):
-    probes: list[str] = device.probedSSIDs
-    connected_APs: list[str] = device.clients
-    name = device.name
-    merge_entry(clients,name,probes,connected_APs)
-    return clients
 
-def merge_entry(master: dict, name, probes, connected_APs) -> dict:
-    if name in master.keys():
-        master[name]["Probes"].extend(probes)
-        master[name]["APs"].extend(connected_APs)
-        master[name]["Probes"] = list(set(master[name]["Probes"]))
-        master[name]["APs"] = list(set(master[name]["APs"]))
+def merge_device(device_dict, device):
+    mac = device.identifier
+    if mac in device_dict.keys():
+        device_dict[mac].extend(device.probedSSIDs)
     else:
-        master[name] = {"APs": connected_APs, "Probes": probes}
-    return master
+        device_dict[mac] = device.probedSSIDs
+    return device_dict
 
 
 def main():
     basepath = aya.getBasePath()
     Filepaths = [(basepath / dev) for dev in args.survey]
     aya.CheckFilepaths(Filepaths)
+    clients = {}
 
     for path in Filepaths:
-        clients = GetAPs(path)
+        project_clients = GetAPs(path)
+        for device in project_clients:
+            if device in clients.keys():
+                clients[device].extend(project_clients[device])
+            else:
+                clients[device] = project_clients[device]
 
     for client in clients:
-        if len(clients[client]["Probes"]) > 1:
+        if len(clients[client]) > 1:
             print(client + ":")
-            print(clients[client]["Probes"])
+            print(clients[client])
+
 
 if __name__ == "__main__":
     main()
