@@ -1,6 +1,6 @@
 import argparse
 import aya
-from aya import KismetDevice
+from aya import KismetDevice, WigleDevice
 from pathlib import Path
 parser = argparse.ArgumentParser()
 parser.add_argument("projects", nargs='+')
@@ -19,6 +19,10 @@ def parse_project(path: Path) -> list[str]:
     project_devices = set()
     for kismet in path.glob('**/*.kismet'):
         devices: list[KismetDevice] = aya.getDevs(kismet, 'all')
+        devices: list[str] = [i.mac for i in devices]
+        project_devices.update(devices)
+    for wigle in path.glob('**/*.csv'):
+        devices: list[WigleDevice] = aya.wigle.devices_from_csv(wigle)
         devices: list[str] = [i.mac for i in devices]
         project_devices.update(devices)
     return list(project_devices)
