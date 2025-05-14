@@ -7,6 +7,7 @@ from typing import Optional, List
 class Geolocation:
     latitude: float
     longitude: float
+    altitude: float
     time: datetime
 
 
