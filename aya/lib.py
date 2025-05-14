@@ -157,7 +157,6 @@ def findOUIMatches(kismet_file: Path, OUI_list: list[str]) -> list[KismetDevice]
     con = sqlite3.connect(kismet_file)
     cur = con.cursor()
     query = f"select * from devices where substr(devmac,1,8) in ({OUI_list})"
-    print(query)
     try:
         cur.execute(query)
     except sqlite3.OperationalError as e:

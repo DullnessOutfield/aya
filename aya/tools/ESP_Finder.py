@@ -20,3 +20,6 @@ def main():
     aya.CheckFilepaths(projects)
     for project in projects:
         FindDevices(project)
+
+if __name__ == '__main__':
+    main()
