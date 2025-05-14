@@ -69,6 +69,7 @@ class WigleDevice(WiFiDevice):
             return self.geolocations[-1]
         return None
 
+    @classmethod
     def from_record(self, row):
         """
         Create a WigleDevice from a row in a wiglecsv file
@@ -79,14 +80,13 @@ class WigleDevice(WiFiDevice):
         lat = row[7]
         lon = row[8]
         alt = row[9]
-        first_seen = datetime.fromtimestamp(row[3])
+        first_seen = datetime.strptime(row[3], '%Y-%m-%d %H:%M:%S')
         geolocation = Geolocation(lat, lon, alt, first_seen)
         return create_wigle_device(
             mac_address=row[0],
             name=row[1],
             capabilities=row[2],
             first_time=first_seen,
-            last_time=first_seen,  # Initially, last seen is same as first seen
             channel=int(row[4]) if row[4] else 0,
             frequency=int(row[5]) if row[5] else 0,
             rssi=int(row[6]) if row[6] else 0,
@@ -94,8 +94,6 @@ class WigleDevice(WiFiDevice):
             lon=lon,
             alt=alt,
             accuracy=float(row[10]) if row[10] else 0.0,
-            rcois=row[11] if len(row) > 11 else None,
-            mfgr_id=row[12] if len(row) > 12 else None,
             device_type="Wi-Fi AP",
             geolocations=[geolocation],
         )
