@@ -119,6 +119,24 @@ def getBasePath() -> Path:
     basepath = f"{home}/Data/"
     return Path(basepath)
 
+def find_soi(kismet_file: Path, soi_file: Path) -> list[KismetDevice]:
+    if not os.path.exists(kismet_file):
+        raise FileNotFoundError(f"File not found: {kismet_file}")
+    with open(soi_file) as f:
+        soi_list = f.readlines()
+    soi_list = ', '.join([f'"{i.upper().strip()}"' for i in soi_list if i.strip()])
+    con = sqlite3.connect(kismet_file)
+    cur = con.cursor()
+    query = f"select * from devices where devmac in ({soi_list})"
+    try:
+        cur.execute(query)
+    except sqlite3.OperationalError as e:
+        raise e
+    devs = []
+    for device in cur:
+        devs.append(extract_json(device))
+    return devs
+
 
 def findOUIMatches(kismet_file: Path, OUI_list: list[str]) -> list[KismetDevice]:
     """
@@ -134,11 +152,12 @@ def findOUIMatches(kismet_file: Path, OUI_list: list[str]) -> list[KismetDevice]
     """
     if not os.path.exists(kismet_file):
         raise FileNotFoundError(f"File not found: {kismet_file}")
-    OUI_list = [clean_OUI(i) for i in OUI_list]
+    OUI_list = [f'"{clean_OUI(i)}"' for i in OUI_list]
     OUI_list = ", ".join(OUI_list)
     con = sqlite3.connect(kismet_file)
     cur = con.cursor()
     query = f"select * from devices where substr(devmac,1,8) in ({OUI_list})"
+    print(query)
     try:
         cur.execute(query)
     except sqlite3.OperationalError as e:

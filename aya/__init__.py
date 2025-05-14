@@ -4,9 +4,12 @@ from .lib import (
     CheckFilepaths,
     getBasePath,
     getSTAs,
+    find_soi,
+    findOUIMatches
 )
 from .KismetDevice import KismetDevice
 from .rest import Connection
+from .oui import *
 __all__ = (
     "getDevs",
     "getAPs",
@@ -15,4 +18,7 @@ __all__ = (
     "getSTAs",
     "KismetDevice",
     "Connection",
+    "find_soi",
+    "findOUIMatches",
+    "oui"
 )
