@@ -1,4 +1,4 @@
-GLinet = ['E4:95:6E']
+GLinet = ['E4:95:6E', '94:83:C4']
 Espressif = ['C4-4F-33',
 'CC-50-E3',
 '68-C6-3A',
