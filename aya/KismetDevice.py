@@ -47,7 +47,7 @@ class KismetDevice(WiFiDevice):
         probe_map = self.dot11.get("dot11.device.probed_ssid_map", {})
         SSIDs = [
             i["dot11.probedssid.ssid"]
-            for _, i in probe_map.items()
+            for i in probe_map
             if len(i["dot11.probedssid.ssid"]) > 0
         ]
         return SSIDs
