@@ -43,19 +43,33 @@ class WigleDevice(WiFiDevice):
     1a:9f:ee:5c:71:c6,Scampoodle,[WPA2-EAP-CCMP][ESS],2018-08-01 13:08:27,161,5805,-43,37.76578028,-123.45919439,67,3.2160000801086426,5A03BA0000 BAA2D00000 BAA2D02000,,WIFI
     """
 
-    capabilities: str
-    first_time: datetime
-    channel: int
-    frequency: int
-    rssi: int
-    lat: float
-    lon: float
-    alt: float
-    accuracy: float
+    capabilities: str = field(default="")
+    first_time: Optional[datetime] = None
+    channel: int = 0
+    frequency: int = 0
+    rssi: int = 0
+    lat: float = 0.0
+    lon: float = 0.0
+    alt: float = 0.0
+    accuracy: float = 0.0
 
-    # RCOI: idk,
-    # MfgrId: idk
-    def from_record(cls, row):
+    def __post_init__(self):
+        if not self.name:
+            self.name = self.identifier
+
+    @property
+    def mac(self) -> str:
+        """Return the MAC address (identifier)."""
+        return self.identifier
+
+    @property
+    def location(self) -> Optional[Geolocation]:
+        """Return the most recent geolocation if available."""
+        if self.geolocations:
+            return self.geolocations[-1]
+        return None
+
+    def from_record(self, row):
         """
         Create a WigleDevice from a row in a wiglecsv file
         """
@@ -67,19 +81,21 @@ class WigleDevice(WiFiDevice):
         alt = row[9]
         first_seen = datetime.fromtimestamp(row[3])
         geolocation = Geolocation(lat, lon, alt, first_seen)
-
-        return WigleDevice(
-            identifier=row[0],
+        return create_wigle_device(
+            mac_address=row[0],
             name=row[1],
             capabilities=row[2],
-            first_seen=first_seen,
-            channel=row[4],
-            frequency=row[5],
-            rssi=row[6],
+            first_time=first_seen,
+            last_time=first_seen,  # Initially, last seen is same as first seen
+            channel=int(row[4]) if row[4] else 0,
+            frequency=int(row[5]) if row[5] else 0,
+            rssi=int(row[6]) if row[6] else 0,
             lat=lat,
             lon=lon,
             alt=alt,
-            accuracy=row[10],
+            accuracy=float(row[10]) if row[10] else 0.0,
+            rcois=row[11] if len(row) > 11 else None,
+            mfgr_id=row[12] if len(row) > 12 else None,
             device_type="Wi-Fi AP",
             geolocations=[geolocation],
         )
@@ -89,3 +105,8 @@ class WigleDevice(WiFiDevice):
 def create_wifi_device(mac_address: str, **kwargs) -> WiFiDevice:
     """Create a WiFi device using a MAC address as the identifier."""
     return WiFiDevice(identifier=mac_address, **kwargs)
+
+
+def create_wigle_device(mac_address: str, **kwargs) -> WigleDevice:
+    """Create a Wigle device using a MAC address as the identifier."""
+    return WigleDevice(identifier=mac_address, **kwargs)
