@@ -70,15 +70,16 @@ class KismetDevice(WiFiDevice):
         return [i for i in self.dot11.get("dot11.device.associated_client_map", {})]
 
     @cached_property
-    def hashes(self) -> str:
+    def hashes(self) -> list[str]:
         hashes = [
-            handshake.get("dot11.eapol.rsn_pmkid")
+            str(handshake.get("dot11.eapol.rsn_pmkid"))
             for handshake in self.dot11.get("dot11.device.wpa_handshake_list", [])
             if handshake.get("dot11.eapol.rsn_pmkid")
         ]
         return hashes
 
-    def create_kismet_device(mac_address: str, **kwargs):
+    @classmethod
+    def create_kismet_device(cls, mac_address: str, **kwargs):
         return KismetDevice(identifier=mac_address, **kwargs)
 
     @classmethod
@@ -111,6 +112,4 @@ if __name__ == "__main__":
     x = create_kismet_device(
         mac_address="aabbccddeeff", name="MyDevice", device_type="Client"
     )
-
-    print(f"x.identifier: {x.identifier}")
-    print(f"x.identifier: {x.mac_address}")
+    #test later

@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from functools import cached_property
 from typing import Optional, List, Dict, Tuple, Any
-from .classes import KismetDevice
+from .KismetDevice import KismetDevice
 from .lib import getDevs
 
 
@@ -18,8 +18,9 @@ class Survey:
         if not self.name:
             self.name = self.path.stem
 
+
     def get_devices(self) -> List[KismetDevice]:
-        self.devices = getDevs(self.path)
+        return getDevs(self.path)
 
     @cached_property
     def access_points(self) -> List[KismetDevice]:

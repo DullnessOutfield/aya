@@ -70,16 +70,16 @@ class WigleDevice(WiFiDevice):
         return None
 
     @classmethod
-    def from_record(self, row):
+    def from_record(cls, row):
         """
         Create a WigleDevice from a row in a wiglecsv file
         """
         if isinstance(row, str):
             row = row.split(",")
 
-        lat = row[7]
-        lon = row[8]
-        alt = row[9]
+        lat: float = float(row[7])
+        lon:float = float(row[8])
+        alt:float = float(row[9])
         first_seen = datetime.strptime(row[3], '%Y-%m-%d %H:%M:%S')
         geolocation = Geolocation(lat, lon, alt, first_seen)
         return create_wigle_device(

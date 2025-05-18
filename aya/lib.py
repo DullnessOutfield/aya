@@ -153,10 +153,10 @@ def findOUIMatches(kismet_file: Path, OUI_list: list[str]) -> list[KismetDevice]
     if not os.path.exists(kismet_file):
         raise FileNotFoundError(f"File not found: {kismet_file}")
     OUI_list = [f'"{clean_OUI(i)}"' for i in OUI_list]
-    OUI_list = ", ".join(OUI_list)
+    OUI_joined = ", ".join(OUI_list)
     con = sqlite3.connect(kismet_file)
     cur = con.cursor()
-    query = f"select * from devices where substr(devmac,1,8) in ({OUI_list})"
+    query = f"select * from devices where substr(devmac,1,8) in ({OUI_joined})"
     try:
         cur.execute(query)
     except sqlite3.OperationalError as e:
@@ -180,8 +180,8 @@ def clean_OUI(oui: str) -> str:
     oui = oui[:6]
     if len(oui) != 6:
         return ""
-    oui = [oui[i : i + 2] for i in range(0, 6, 2)]
-    return ":".join(oui).upper()
+    oui_pairs = [oui[i : i + 2] for i in range(0, 6, 2)]
+    return ":".join(oui_pairs).upper()
 
 def Generate24GChannels():
     channel_map = {}
@@ -210,11 +210,12 @@ def Generate5GChannels():
     channel_map = {}
     for i in range(200):
         freq = (i*5)+5000
+        freqwidth = 0
         for channelwidth in channelwidths:
             if i in channelwidth[0]:
                 freqwidth = int(channelwidth[1]*.5)
-        channel_map[i] = {"center":freq, "range":[freq-freqwidth,freq+freqwidth]}
-        #print(i,freq)
+                channel_map[i] = {"center":freq, "range":[freq-freqwidth,freq+freqwidth]}
+                break
     return channel_map
 
 def get_freq_data(kismet_file: Path):

@@ -12,7 +12,7 @@ class Connection:
         self.check_connection()
 
     @property
-    def baseurl(self):
+    def baseurl(self) -> str:
         return f"http://{self.username}:{self.password}@{self.address}:{self.port}"
 
     def deviceurl(self, devicekey):
@@ -61,4 +61,4 @@ def connection_from_config(config_file) -> dict:
 
 if __name__ == "__main__":
     connection = connection_from_config("./test_connection.json")
-    print(connection.baseurl)
+    print(connection)
