@@ -31,3 +31,4 @@ Espressif = ['C4-4F-33',
 'BC-DD-C2',
 'DC-4F-22',
 'C8-2B-96']
+Cradlepoint = ['00:30:44', '00:E0:1C']
