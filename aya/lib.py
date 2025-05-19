@@ -150,7 +150,10 @@ def find_soi(kismet_file: Path, targets: Sequence[Device]) -> list[KismetDevice]
     wifi_targets: list[WiFiDevice] = [i for i in targets if isinstance(i, WiFiDevice)]
     target_macs = [i.mac for i in wifi_targets]
     target_ssids = [i.name for i in wifi_targets]
-    devices = get_devs(kismet_file)
+    try:
+        devices = get_devs(kismet_file)
+    except sqlite3.OperationalError:
+        devices = []
     mac_hits = [i for i in devices if i.mac in target_macs]
     aps = [i for i in devices if i.device_type == "Wi-Fi AP"]
     ssid_hits = [i for i in aps if i.name in target_ssids]
