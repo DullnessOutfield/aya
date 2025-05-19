@@ -4,17 +4,17 @@ import logging
 import os
 import re
 import sqlite3
-from datetime import datetime
+from datetime import datetime, UTC
 from pathlib import Path
 from typing import Optional, Sequence
 
+from .classes import BluetoothDevice, Device, WiFiDevice
 from .KismetDevice import KismetDevice, create_kismet_device
-from .classes import Device, WiFiDevice, BluetoothDevice
 
 
 def extract_json(row: tuple) -> KismetDevice:
-    """
-    Extracts and parses the JSON data from a Kismet database device row.
+    """Extract and parse the JSON data from a Kismet database device row.
+
     Args:
         row (tuple): A tuple representing a row from the device table.
 
@@ -23,33 +23,32 @@ def extract_json(row: tuple) -> KismetDevice:
 
     Raises:
         JSONDecodeError: If the JSON data cannot be parsed.
-    """
 
-    first_time = datetime.fromtimestamp(int(row[0]))
-    last_time = datetime.fromtimestamp(int(row[1]))
-    mac = row[4]
-    devtype = row[13]
-    rawjson = row[14]
+    """
+    first_time = datetime.fromtimestamp(int(row[0]), UTC)
+    last_time = datetime.fromtimestamp(int(row[1]), UTC)
+    mac: str = row[4]
+    devtype: str = row[13]
+    rawjson: str = row[14]
     try:
-        real_json = json.loads(rawjson)
+        real_json: dict = json.loads(rawjson)
     except json.decoder.JSONDecodeError as e:
         real_json = {}
-        logging.warning(f"Error decoding {mac}: {e}")
-    dev = create_kismet_device(
+        logging.warning("Error decoding %s: %s", mac, e)
+    return create_kismet_device(
         mac,
         first_time=first_time,
         last_time=last_time,
         device_type=devtype,
         metadata=real_json,
     )
-    return dev
 
 
 def get_devs(
-    kismet_file: Path, devtype: Optional[list[str]] = None
+    kismet_file: Path, devtype: Optional[list[str]] = None,
 ) -> list[KismetDevice]:
-    """
-    Get devices from a kismet file
+    """Get devices from a kismet file.
+
     Args:
         kismet_file (Path): The path to a kismetdb file
         devtype (Optional list[str]): kismetdb device types to pull. Will pull all devices if not provided.
@@ -60,14 +59,15 @@ def get_devs(
     Raises:
         FileNotFoundError: if kismet_file does not exist
         sqlite3.OperationalError: If the query fails for whatever reason
-    """
 
-    if not os.path.exists(kismet_file):
-        raise FileNotFoundError(f"File not found: {kismet_file}")    
+    """
+    if not Path.exists(kismet_file):
+        msg = f"File not found: {kismet_file}"
+        raise FileNotFoundError(msg)
     if isinstance(devtype, str):
         devtype = [devtype]
     if devtype is None:
-        devtype = ['all']
+        devtype = ["all"]
     devtype = [f"'{i}'" for i in devtype]
     con = sqlite3.connect(kismet_file)
     cur = con.cursor()
@@ -75,55 +75,62 @@ def get_devs(
         query = "select * from devices"
     else:
         query = f"select * from devices where type in ({', '.join(devtype)})"
-    try:
-        cur.execute(query)
-    except sqlite3.OperationalError as e:
-        raise e
+    cur.execute(query)
     devs = []
     for device in cur:
-        try:
-            dev = extract_json(device)
+        dev = extract_json(device)
+        if dev:
             devs.append(dev)
-        except json.decoder.JSONDecodeError as e:
-            logging.warning(f"Error decoding device: {e}")
     return devs
 
 
 def get_access_points(kismet_file: Path) -> list[KismetDevice]:
-    """
-    Get all Access Points from a kismet file
+    """Get all Access Points from a kismet file.
+
     Args:
         kismet_file (Path): The path to a kismetdb file
 
     Returns:
         list[dict]: A list of all the json dumps from all Wi-Fi Access Points in the db.
+
     """
-    APs = get_devs(kismet_file, ["Wi-Fi AP", "Wi-Fi Bridged"])
-    return APs
+    return get_devs(kismet_file, ["Wi-Fi AP", "Wi-Fi Bridged"])
 
 
 def get_stas(kismet_file: Path) -> list[KismetDevice]:
-    STAs = get_devs(kismet_file, ["Wi-Fi Client", "Wi-Fi Device"])
-    return STAs
+    """Get all Wi-Fi Devices/Clients from a kismet file.
 
+    Args:
+        kismet_file (Path): The path to a kismetdb file
 
-def check_filepaths(filepaths: list[Path]):
+    Returns:
+        list[dict]: A list of all the json dumps from all Wi-Fi STAs in the db.
+
     """
-    Ensures all filepaths exist
+    return get_devs(kismet_file, ["Wi-Fi Client", "Wi-Fi Device"])
+
+
+def check_filepaths(filepaths: list[Path]) -> None:
+    """Ensure all filepaths exist.
+
+    Args:
+        filepaths (list[Path]): A list of file paths to check.
+
     """
     for path in filepaths:
-        if not os.path.exists(path):
-            raise FileNotFoundError(f"{path} does not exist.")
+        if not Path.exists(path):
+            msg = f"{path} does not exist."
+            raise FileNotFoundError(msg)
 
 
 def get_basepath() -> Path:
-    pathfile = "./pathconfig.txt"
-    if os.path.exists(pathfile):
-        with open(pathfile) as f:
-            configured_path = f.readline()
-        if os.path.exists(configured_path):
+    pathfile = Path("./pathconfig.txt")
+    if Path.exists(pathfile):
+        with Path.open(pathfile) as f:
+            configured_path = Path(f.readline())
+        if Path.exists(configured_path):
             return Path(configured_path)
-    home = os.path.expanduser("~")
+    home = Path.expanduser(Path("~"))
     basepath = f"{home}/Data/"
     return Path(basepath)
 
@@ -162,25 +169,28 @@ def find_soi(kismet_file: Path, targets: Sequence[Device]) -> list[KismetDevice 
     return list(mac_hits + ssid_hits + bt_hits)
 
 
-def find_oui_matches(kismet_file: Path, OUI_list: list[str]) -> list[KismetDevice]:
-    """
-    Gets all devices matching given OUIs
+def find_oui_matches(kismet_file: Path, oui_list: list[str]) -> list[KismetDevice]:
+    """Get all devices matching given OUIs.
+
     Args:
         kismet_file (Path): kismetdb to pull devices from
         OUI_list (list[str]): list of MAC addresses or OUIs to be matched to
+
     Returns:
         list[KismetDevice]: Matching devices
+
     Raises:
         FileNotFoundError: if kismet_file does not exist
         sqlite3.OperationalError: if query fails to run
+
     """
-    if not os.path.exists(kismet_file):
+    if not Path.exists(kismet_file):
         raise FileNotFoundError(f"File not found: {kismet_file}")
-    OUI_list = [f'"{clean_oui(i)}"' for i in OUI_list]
-    OUI_joined = ", ".join(OUI_list)
+    oui_list = [f'"{clean_oui(i)}"' for i in oui_list]
+    oui_joined = ", ".join(oui_list)
     con = sqlite3.connect(kismet_file)
     cur = con.cursor()
-    query = f"select * from devices where substr(devmac,1,8) in ({OUI_joined})"
+    query = f"select * from devices where substr(devmac,1,8) in ({oui_joined})"
     try:
         cur.execute(query)
     except sqlite3.OperationalError as e:
@@ -192,13 +202,15 @@ def find_oui_matches(kismet_file: Path, OUI_list: list[str]) -> list[KismetDevic
 
 
 def clean_oui(oui: str) -> str:
-    """
-    Takes a MAC or OUI fragment and returns it in a standard format
+    """Take a MAC or OUI fragment and return it in a standard format.
+
     Args:
         oui (str): A MAC addr or OUI
+
     Returns:
         str: Standard OUI formatted as AA:BB:CC
         '': Returns empty string if given mutilated str
+
     """
     oui = re.sub(r"[^0-9a-fA-F]", "", oui)
     oui = oui[:6]
