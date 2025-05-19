@@ -10,7 +10,12 @@ basepath = aya.get_basepath()
 
 def find_kismet_devices(Folder: Path, soi_file: Path):
     for file in Folder.glob('**/*.kismet'):
-        devices: list[aya.KismetDevice] = aya.find_soi(file, soi_file)
+        with open(soi_file) as f:
+            soi_list = f.readlines()
+        soi_list = [f'{i.upper().strip()}' for i in soi_list if i.strip()]
+        soi_devices = [aya.classes.WiFiDevice(i) for i in soi_list]
+        devices = aya.find_soi(file, soi_devices)
+
         if devices:
             for i in devices:
                 print(i.mac, file)
