@@ -17,6 +17,7 @@ class Device:
 
     identifier: str
     geolocations: List[Geolocation] = field(default_factory=list)
+    device_type: Optional[str] = None
 
 
 @dataclass
@@ -32,7 +33,6 @@ class WirelessDevice(Device):
     """Wireless device with a network address."""
 
     name: Optional[str] = None
-    device_type: Optional[str] = None
 
 
 @dataclass
