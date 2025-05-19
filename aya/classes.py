@@ -26,6 +26,14 @@ class WirelessDevice(Device):
     name: Optional[str] = None
     device_type: Optional[str] = None
 
+@dataclass
+class TPMSDevice(WirelessDevice):
+    """Tire Pressure Sensor device"""
+    data: dict = field(default_factory=dict)
+
+    def __post_init__(self):
+        if not self.device_type:
+            self.device_type = "TPMS"
 
 @dataclass
 class WiFiDevice(WirelessDevice):
