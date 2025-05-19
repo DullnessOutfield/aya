@@ -10,7 +10,7 @@ from .lib import (
 from .classes import WigleDevice
 from .KismetDevice import KismetDevice
 from .rest import Connection
-from .oui import *
+from . import oui
 from . import wigle
 __all__ = (
     "wigle",

@@ -1,5 +1,5 @@
 import csv
-import aya
+from ..classes import WigleDevice
 
 def find_soi(file, soi_file):
     with open(soi_file) as f:
@@ -13,5 +13,5 @@ def devices_from_csv(file):
     with open(file) as f:
         raw_file = f.readlines()[2:]
     csvdata = csv.reader(raw_file)
-    devices = [aya.WigleDevice.from_record(i) for i in csvdata]
+    devices = [WigleDevice.from_record(i) for i in csvdata]
     return devices
