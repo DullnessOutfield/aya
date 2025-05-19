@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Optional, Sequence
 
 from .KismetDevice import KismetDevice, create_kismet_device
-from .classes import Device, WiFiDevice
+from .classes import Device, WiFiDevice, BluetoothDevice
 
 
 def extract_json(row: tuple) -> KismetDevice:
@@ -128,7 +128,7 @@ def get_basepath() -> Path:
     return Path(basepath)
 
 
-def find_soi(kismet_file: Path, targets: Sequence[Device]) -> list[KismetDevice]:
+def find_soi(kismet_file: Path, targets: Sequence[Device]) -> list[KismetDevice | BluetoothDevice]:
     """Find devices of interest in a Kismet database file.
 
     Supports MAC and SSID matching.
@@ -148,16 +148,18 @@ def find_soi(kismet_file: Path, targets: Sequence[Device]) -> list[KismetDevice]
         msg = f"File not found: {kismet_file}"
         raise FileNotFoundError(msg)
     wifi_targets: list[WiFiDevice] = [i for i in targets if isinstance(i, WiFiDevice)]
+    bt_targets: list[str] = [i.identifier for i in targets if isinstance(i, BluetoothDevice)]
     target_macs = [i.mac for i in wifi_targets]
     target_ssids = [i.name for i in wifi_targets]
     try:
         devices = get_devs(kismet_file)
     except sqlite3.OperationalError:
         devices = []
+    bt_hits = [i for i in devices if i.mac in bt_targets]
     mac_hits = [i for i in devices if i.mac in target_macs]
     aps = [i for i in devices if i.device_type == "Wi-Fi AP"]
     ssid_hits = [i for i in aps if i.name in target_ssids]
-    return list(mac_hits + ssid_hits)
+    return list(mac_hits + ssid_hits + bt_hits)
 
 
 def find_oui_matches(kismet_file: Path, OUI_list: list[str]) -> list[KismetDevice]:
