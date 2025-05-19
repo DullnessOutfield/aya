@@ -30,7 +30,7 @@ class Survey:
             if device.device_type in ("Wi-Fi AP", "Wi-Fi Bridged")
         ]
 
-
+@dataclass
 class Project:
     name: str
     surveys: List[Survey] = field(default_factory=list)
