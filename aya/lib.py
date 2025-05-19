@@ -60,12 +60,13 @@ def get_devs(
         FileNotFoundError: if kismet_file does not exist
         sqlite3.OperationalError: If the query fails for whatever reason
     """
-    if devtype is None:
-        devtype = ["'all'"]
+
     if not os.path.exists(kismet_file):
-        raise FileNotFoundError(f"File not found: {kismet_file}")
+        raise FileNotFoundError(f"File not found: {kismet_file}")    
     if isinstance(devtype, str):
         devtype = [devtype]
+    if devtype is None:
+        devtype = ['all']
     devtype = [f"'{i}'" for i in devtype]
     con = sqlite3.connect(kismet_file)
     cur = con.cursor()
@@ -279,3 +280,5 @@ def channel_count(kismet_file: Path):
                 if channelmap24G[channel]["center"] == j:
                     channel_map[channel] = freqcount[j]
     return channel_map
+
+# def find_devices(targets: List[Devices])
