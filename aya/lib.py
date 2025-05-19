@@ -1,11 +1,13 @@
-import sqlite3
+import itertools
 import json
+import logging
 import os
 import re
-import logging
-import itertools
-from pathlib import Path
+import sqlite3
 from datetime import datetime
+from pathlib import Path
+from typing import Optional
+
 from .KismetDevice import KismetDevice, create_kismet_device
 
 
@@ -42,7 +44,9 @@ def extract_json(row: tuple) -> KismetDevice:
     return dev
 
 
-def getDevs(kismet_file: Path, devtype: list[str] = []) -> list[KismetDevice]:
+def get_devs(
+    kismet_file: Path, devtype: Optional[list[str]] = None
+) -> list[KismetDevice]:
     """
     Get devices from a kismet file
     Args:
@@ -56,14 +60,16 @@ def getDevs(kismet_file: Path, devtype: list[str] = []) -> list[KismetDevice]:
         FileNotFoundError: if kismet_file does not exist
         sqlite3.OperationalError: If the query fails for whatever reason
     """
+    if devtype is None:
+        devtype = ["'all'"]
     if not os.path.exists(kismet_file):
         raise FileNotFoundError(f"File not found: {kismet_file}")
-    if type(devtype) is str:
+    if isinstance(devtype, str):
         devtype = [devtype]
     devtype = [f"'{i}'" for i in devtype]
     con = sqlite3.connect(kismet_file)
     cur = con.cursor()
-    if not devtype or devtype == ["'all'"]:
+    if devtype == ["'all'"]:
         query = "select * from devices"
     else:
         query = f"select * from devices where type in ({', '.join(devtype)})"
@@ -81,7 +87,7 @@ def getDevs(kismet_file: Path, devtype: list[str] = []) -> list[KismetDevice]:
     return devs
 
 
-def getAPs(kismet_file: Path) -> list[KismetDevice]:
+def get_access_points(kismet_file: Path) -> list[KismetDevice]:
     """
     Get all Access Points from a kismet file
     Args:
@@ -90,25 +96,25 @@ def getAPs(kismet_file: Path) -> list[KismetDevice]:
     Returns:
         list[dict]: A list of all the json dumps from all Wi-Fi Access Points in the db.
     """
-    APs = getDevs(kismet_file, ["Wi-Fi AP", "Wi-Fi Bridged"])
+    APs = get_devs(kismet_file, ["Wi-Fi AP", "Wi-Fi Bridged"])
     return APs
 
 
-def getSTAs(kismet_file: Path) -> list[KismetDevice]:
-    STAs = getDevs(kismet_file, ["Wi-Fi Client", "Wi-Fi Device"])
+def get_stas(kismet_file: Path) -> list[KismetDevice]:
+    STAs = get_devs(kismet_file, ["Wi-Fi Client", "Wi-Fi Device"])
     return STAs
 
 
-def CheckFilepaths(Filepaths: list[Path]):
+def check_filepaths(filepaths: list[Path]):
     """
     Ensures all filepaths exist
     """
-    for path in Filepaths:
+    for path in filepaths:
         if not os.path.exists(path):
             raise FileNotFoundError(f"{path} does not exist.")
 
 
-def getBasePath() -> Path:
+def get_basepath() -> Path:
     pathfile = "./pathconfig.txt"
     if os.path.exists(pathfile):
         with open(pathfile) as f:
@@ -119,12 +125,13 @@ def getBasePath() -> Path:
     basepath = f"{home}/Data/"
     return Path(basepath)
 
+
 def find_soi(kismet_file: Path, soi_file: Path) -> list[KismetDevice]:
     if not os.path.exists(kismet_file):
         raise FileNotFoundError(f"File not found: {kismet_file}")
     with open(soi_file) as f:
         soi_list = f.readlines()
-    soi_list = ', '.join([f'"{i.upper().strip()}"' for i in soi_list if i.strip()])
+    soi_list = ", ".join([f'"{i.upper().strip()}"' for i in soi_list if i.strip()])
     con = sqlite3.connect(kismet_file)
     cur = con.cursor()
     query = f"select * from devices where devmac in ({soi_list})"
@@ -138,7 +145,7 @@ def find_soi(kismet_file: Path, soi_file: Path) -> list[KismetDevice]:
     return devs
 
 
-def findOUIMatches(kismet_file: Path, OUI_list: list[str]) -> list[KismetDevice]:
+def find_oui_matches(kismet_file: Path, OUI_list: list[str]) -> list[KismetDevice]:
     """
     Gets all devices matching given OUIs
     Args:
@@ -152,7 +159,7 @@ def findOUIMatches(kismet_file: Path, OUI_list: list[str]) -> list[KismetDevice]
     """
     if not os.path.exists(kismet_file):
         raise FileNotFoundError(f"File not found: {kismet_file}")
-    OUI_list = [f'"{clean_OUI(i)}"' for i in OUI_list]
+    OUI_list = [f'"{clean_oui(i)}"' for i in OUI_list]
     OUI_joined = ", ".join(OUI_list)
     con = sqlite3.connect(kismet_file)
     cur = con.cursor()
@@ -167,7 +174,7 @@ def findOUIMatches(kismet_file: Path, OUI_list: list[str]) -> list[KismetDevice]
     return devs
 
 
-def clean_OUI(oui: str) -> str:
+def clean_oui(oui: str) -> str:
     """
     Takes a MAC or OUI fragment and returns it in a standard format
     Args:
@@ -183,71 +190,92 @@ def clean_OUI(oui: str) -> str:
     oui_pairs = [oui[i : i + 2] for i in range(0, 6, 2)]
     return ":".join(oui_pairs).upper()
 
-def Generate24GChannels():
+
+def generate_24g_channels():
     channel_map = {}
-    for i in range(1,14):
-        freq = 2407+(i*5)
+    for i in range(1, 14):
+        freq = 2407 + (i * 5)
         freqwidth = 11
-        channel_map[i] = {"center":freq, "range":[freq-freqwidth,freq+freqwidth]}
+        channel_map[i] = {"center": freq, "range": [freq - freqwidth, freq + freqwidth]}
     return channel_map
 
-def Generate5GChannels():
-    channelwidths=[[[180, 182, 184, 187, 189],10],\
-                   [[34, 38, 46, 54, 62, 102, 110, 118, 126, 134, 142, 151, 159, 167, 175],40],\
-                   [[42, 58, 106, 122, 138, 155, 171],80],\
-                   [[50, 114, 163],160]]
 
-    channelwidths.append([[i for i in range(200)\
-                          if i not in\
-                          list(itertools.chain(channelwidths[0][0]\
-                                               ,channelwidths[1][0]\
-                                               ,channelwidths[2][0]\
-                                               ,channelwidths[3][0]))],20])
+def generate_5g_channels():
+    channelwidths = [
+        [[180, 182, 184, 187, 189], 10],
+        [[34, 38, 46, 54, 62, 102, 110, 118, 126, 134, 142, 151, 159, 167, 175], 40],
+        [[42, 58, 106, 122, 138, 155, 171], 80],
+        [[50, 114, 163], 160],
+    ]
+
+    channelwidths.append(
+        [
+            [
+                i
+                for i in range(200)
+                if i
+                not in list(
+                    itertools.chain(
+                        channelwidths[0][0],
+                        channelwidths[1][0],
+                        channelwidths[2][0],
+                        channelwidths[3][0],
+                    )
+                )
+            ],
+            20,
+        ]
+    )
     for i in channelwidths:
         print(i)
-    
 
     channel_map = {}
     for i in range(200):
-        freq = (i*5)+5000
+        freq = (i * 5) + 5000
         freqwidth = 0
         for channelwidth in channelwidths:
             if i in channelwidth[0]:
-                freqwidth = int(channelwidth[1]*.5)
-                channel_map[i] = {"center":freq, "range":[freq-freqwidth,freq+freqwidth]}
+                freqwidth = int(channelwidth[1] * 0.5)
+                channel_map[i] = {
+                    "center": freq,
+                    "range": [freq - freqwidth, freq + freqwidth],
+                }
                 break
     return channel_map
+
 
 def get_freq_data(kismet_file: Path):
     freqcount = {}
     con = sqlite3.connect(kismet_file)
     cur = con.cursor()
-    for j in cur.execute('select frequency, count(frequency) from packets where frequency > 0 group by frequency'):
+    for j in cur.execute(
+        "select frequency, count(frequency) from packets where frequency > 0 group by frequency"
+    ):
         j = list(j)
-        j[0] = int(j[0]*(10**-3))
+        j[0] = int(j[0] * (10**-3))
         if j[0] not in freqcount:
             freqcount[j[0]] = j[1]
         else:
             freqcount[j[0]] += j[1]
     return freqcount
 
+
 def channel_count(kismet_file: Path):
     freqcount = get_freq_data(kismet_file)
-    channelmap5G = Generate5GChannels()
-    channelmap24G = Generate24GChannels()
+    channelmap5G = generate_5g_channels()
+    channelmap24G = generate_24g_channels()
     channel_map = {}
-
 
     for channel in channelmap5G:
         for i in freqcount:
-            if channelmap5G[channel]['center'] == i:
+            if channelmap5G[channel]["center"] == i:
                 channel_map[channel] = freqcount[i]
         else:
             channel_map[channel] = 0
-                
-    for i,j in enumerate(freqcount):
+
+    for i, j in enumerate(freqcount):
         if j < 3000:
             for channel in channelmap24G:
-                if channelmap24G[channel]['center'] == j:
+                if channelmap24G[channel]["center"] == j:
                     channel_map[channel] = freqcount[j]
     return channel_map

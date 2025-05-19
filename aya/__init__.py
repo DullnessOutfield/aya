@@ -1,11 +1,11 @@
 from .lib import (
-    getDevs,
-    getAPs,
-    CheckFilepaths,
-    getBasePath,
-    getSTAs,
+    get_devs,
+    get_access_points,
+    check_filepaths,
+    get_basepath,
+    get_stas,
     find_soi,
-    findOUIMatches
+    find_oui_matches
 )
 from .classes import WigleDevice
 from .KismetDevice import KismetDevice
@@ -14,15 +14,15 @@ from .oui import *
 from . import wigle
 __all__ = (
     "wigle",
-    "getDevs",
-    "getAPs",
-    "CheckFilepaths",
-    "getBasePath",
-    "getSTAs",
+    "get_devs",
+    "get_access_points",
+    "check_filepaths",
+    "get_basepath",
+    "get_stas",
     "KismetDevice",
     "WigleDevice",
     "Connection",
     "find_soi",
-    "findOUIMatches",
+    "find_oui_matches",
     "oui"
 )

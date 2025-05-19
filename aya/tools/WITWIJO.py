@@ -5,44 +5,44 @@ from pathlib import Path
 parser = argparse.ArgumentParser()
 parser.add_argument("projects", nargs='+')
 args = parser.parse_args()
-basepath = aya.getBasePath()
+basepath = aya.get_basepath()
 
-def AppendToMACDict(project: str, MACs: list[str], MACDict):
-    for mac in MACs:
-        if mac not in MACDict:
-            MACDict[mac] = [project]
-        elif project not in MACDict[mac]:
-            MACDict[mac].append(project)
-    return MACDict
+def append_to_mac_dict(project: str, macs: list[str], mac_dict):
+    for mac in macs:
+        if mac not in mac_dict:
+            mac_dict[mac] = [project]
+        elif project not in mac_dict[mac]:
+            mac_dict[mac].append(project)
+    return mac_dict
 
 def parse_project(path: Path) -> list[str]:
     project_devices = set()
     for kismet in path.glob('**/*.kismet'):
-        devices: list[KismetDevice] = aya.getDevs(kismet, 'all')
-        devices: list[str] = [i.mac for i in devices]
-        project_devices.update(devices)
+        kismet_devices: list[KismetDevice] = aya.get_devs(kismet)
+        macs: list[str] = [i.mac for i in kismet_devices]
+        project_devices.update(macs)
     for wigle in path.glob('**/*.csv'):
-        devices: list[WigleDevice] = aya.wigle.devices_from_csv(wigle)
-        devices: list[str] = [i.mac for i in devices]
-        project_devices.update(devices)
+        wigle_devices: list[WigleDevice] = aya.wigle.devices_from_csv(wigle)
+        macs: list[str] = [i.mac for i in wigle_devices]
+        project_devices.update(macs)
     return list(project_devices)
 
 def main():
     projects: list[Path] = [basepath / project for project in args.projects]
-    aya.CheckFilepaths(projects)
-    MACDictionary = {}
+    aya.check_filepaths(projects)
+    mac_dictionary = {}
     for project in projects:
         MACList = parse_project(project)
         project_name = project.name
-        MACDictionary = AppendToMACDict(project_name, MACList, MACDictionary)
-    CommonDevices = [i for i in MACDictionary if len(MACDictionary[i]) > 1]
+        mac_dictionary = append_to_mac_dict(project_name, MACList, mac_dictionary)
+    common_devices = [i for i in mac_dictionary if len(mac_dictionary[i]) > 1]
     
-    for Device in CommonDevices:
-        Sightings = MACDictionary[Device]
-        Sighting_Commas = Sightings[:-1]
-        Sighting_And = Sightings[-1]
-        Sighting_Formatted = "\t\tseen at {0} and {1}".format(', '.join(Sighting_Commas), Sighting_And)
-        print(Device, Sighting_Formatted)
+    for device in common_devices:
+        sightings = mac_dictionary[device]
+        sighting_commas = ', '.join(sightings[:-1])
+        sighting_and = sightings[-1]
+        sighting_formatted = f"\t\tseen at {sighting_commas} and {sighting_and}"
+        print(device, sighting_formatted)
 
 if __name__ == "__main__":
     main()

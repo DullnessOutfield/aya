@@ -6,7 +6,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("survey", nargs='+')
 args = parser.parse_args()
 
-basepath = aya.getBasePath()
+basepath = aya.get_basepath()
 
 def find_kismet_devices(Folder: Path, soi_file: Path):
     for file in Folder.glob('**/*.kismet'):
@@ -25,7 +25,7 @@ def find_wigle_devices(folder: Path, soi_file: Path):
 def main():
     soi = Path('/home/sigsec/soi.txt')
     projects: list[Path] = [basepath / project for project in args.survey]
-    aya.CheckFilepaths(projects)
+    aya.check_filepaths(projects)
     for project in projects:
         find_kismet_devices(project, soi)
         find_wigle_devices(project, soi)

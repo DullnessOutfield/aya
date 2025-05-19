@@ -15,7 +15,7 @@ def ProcessProject(project: Path):
     """
     project_dictionary = {}
     for kismet_file in project.glob("**/*.kismet"):
-        devices = aya.getSTAs(kismet_file)
+        devices = aya.get_stas(kismet_file)
         for device in devices:
             if device.mac not in project_dictionary:
                 project_dictionary[device.mac] = device.probedSSIDs
@@ -60,7 +60,7 @@ def GenerateGraph(overall_dict):
     Args:
         overall_dict (dict): Refer to main() and ProcessProject()
     """
-    output = Path(aya.getBasePath() / "graph.gml")
+    output = Path(aya.get_basepath() / "graph.gml")
     Graph = nx.Graph()
     ssid_nodes = set()
     for project_name, project_dict in overall_dict.items():
@@ -77,10 +77,10 @@ def GenerateGraph(overall_dict):
 
 
 def main():
-    basepath = aya.getBasePath()
+    basepath = aya.get_basepath()
     nodes = {}
     projects: list[Path] = [basepath / project for project in args.projects]
-    aya.CheckFilepaths(projects)
+    aya.check_filepaths(projects)
     for project in projects:
         nodes[project.name] = ProcessProject(project)
     GenerateGraph(nodes)

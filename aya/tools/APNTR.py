@@ -8,10 +8,10 @@ parser.add_argument("survey", nargs="+", default="")
 args = parser.parse_args()
 
 
-def GetAPs(Folder: Path):
+def get_aps(folder: Path):
     clients: dict = {}
-    for file in Folder.glob("**/*.kismet"):
-        devs = aya.getSTAs(file)
+    for file in folder.glob("**/*.kismet"):
+        devs = aya.get_stas(file)
         merge_project_dicts(clients, devs)
     return clients
 
@@ -32,13 +32,13 @@ def merge_device(device_dict, device):
 
 
 def main():
-    basepath = aya.getBasePath()
+    basepath = aya.get_basepath()
     Filepaths = [(basepath / dev) for dev in args.survey]
-    aya.CheckFilepaths(Filepaths)
+    aya.check_filepaths(Filepaths)
     clients = {}
 
     for path in Filepaths:
-        project_clients = GetAPs(path)
+        project_clients = get_aps(path)
         for device in project_clients:
             if device in clients.keys():
                 clients[device].extend(project_clients[device])

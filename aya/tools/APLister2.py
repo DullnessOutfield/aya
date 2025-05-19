@@ -8,7 +8,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("survey", nargs="+", default=["test"])
 args = parser.parse_args()
 
-basepath = aya.getBasePath()
+basepath: Path = aya.get_basepath()
 
 
 def ProcessProject(project_folder: Path):
@@ -23,18 +23,18 @@ def ProcessProject(project_folder: Path):
     project_dict = {}
     files = project_folder.glob("**/*.kismet")
     for file in files:
-        location: Path = Path(file).parent.name
-        file_APs: list[KismetDevice] = aya.getAPs(file)
+        location: str = Path(file).parent.name
+        file_APs: list[KismetDevice] = aya.get_access_points(file)
         file_dict = {}
         if file_APs:
-            file_dict = ProcessFile(file_APs)
-        for device in file_dict:
-            file_dict[device]["Surveys"] = [location]
-        project_dict = IntegrateFile(file_dict, project_dict)
+            file_dict = process_file(file_APs)
+        for _,device in file_dict.items():
+            device["Surveys"] = [location]
+        project_dict = integrate_file(file_dict, project_dict)
     return project_dict
 
 
-def IntegrateFile(new_file, master_file) -> dict:
+def integrate_file(new_file, master_file) -> dict:
     """
     Merges APs from a kismetdb file into an existing AP dict
     Args:
@@ -54,7 +54,7 @@ def IntegrateFile(new_file, master_file) -> dict:
     return master_file
 
 
-def ProcessFile(kismet_devices: list[KismetDevice]) -> dict:
+def process_file(kismet_devices: list[KismetDevice]) -> dict:
     """
     Generates a dict of APs for a given file.
     Args:
@@ -66,22 +66,22 @@ def ProcessFile(kismet_devices: list[KismetDevice]) -> dict:
     file_dict = {}
     for device in kismet_devices:
         mac = device.mac
-        SSID = device.json["kismet.device.base.commonname"]
-        file_dict[SSID] = {"Clients": [], "Surveys": [], "MACs": []}
-        Clients = device.clients
-        if Clients:
-            file_dict[SSID]["Clients"] = Clients
-            file_dict[SSID]["MACs"] = [mac]
+        ssid = device.json["kismet.device.base.commonname"]
+        file_dict[ssid] = {"Clients": [], "Surveys": [], "MACs": []}
+        clients = device.clients
+        if clients:
+            file_dict[ssid]["Clients"] = clients
+            file_dict[ssid]["MACs"] = [mac]
     return file_dict
 
 
 def main():
     APs = {}
     projects: list[Path] = [basepath / project for project in args.survey]
-    aya.CheckFilepaths(projects)
+    aya.check_filepaths(projects)
     for project in projects:
         project_APs: dict = ProcessProject(project)
-        APs = IntegrateFile(project_APs, APs)
+        APs = integrate_file(project_APs, APs)
     for i in sorted(APs):
         print(i, APs[i])
 
