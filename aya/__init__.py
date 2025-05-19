@@ -25,7 +25,5 @@ __all__ = (
     "find_soi",
     "find_oui_matches",
     "oui",
-    "wigle"
 )
 
-from . import wigle
