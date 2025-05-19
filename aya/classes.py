@@ -20,20 +20,53 @@ class Device:
 
 
 @dataclass
+class LicensePlate(Device):
+    """Experimental License Plate class for ALPR"""
+
+    state: Optional[str] = None
+    registration: Optional[str] = None
+
+
+@dataclass
 class WirelessDevice(Device):
     """Wireless device with a network address."""
 
     name: Optional[str] = None
     device_type: Optional[str] = None
 
+
 @dataclass
 class TPMSDevice(WirelessDevice):
     """Tire Pressure Sensor device"""
+
     data: dict = field(default_factory=dict)
 
     def __post_init__(self):
         if not self.device_type:
             self.device_type = "TPMS"
+
+
+@dataclass
+class RFIDDevice(WirelessDevice):
+    """RFID device"""
+
+    def __post_init__(self):
+        if not self.device_type:
+            self.device_type = "RFID"
+
+
+@dataclass
+class BluetoothDevice(WirelessDevice):
+    """Bluetooth device with a MAC address as its identifier."""
+
+    def __post_init__(self):
+        if not self.device_type:
+            self.device_type = "Bluetooth"
+
+    @property
+    def mac(self):
+        return self.identifier
+
 
 @dataclass
 class WiFiDevice(WirelessDevice):
@@ -46,11 +79,6 @@ class WiFiDevice(WirelessDevice):
 
 @dataclass
 class WigleDevice(WiFiDevice):
-    """
-    [BSSID],[SSID],[Capabilities],[First timestamp seen],[Channel],[Frequency],[RSSI],[Latitude],[Longitude],[Altitude],[Accuracy],[RCOIs],[MfgrId],[Type]
-    1a:9f:ee:5c:71:c6,Scampoodle,[WPA2-EAP-CCMP][ESS],2018-08-01 13:08:27,161,5805,-43,37.76578028,-123.45919439,67,3.2160000801086426,5A03BA0000 BAA2D00000 BAA2D02000,,WIFI
-    """
-
     capabilities: str = field(default="")
     first_time: Optional[datetime] = None
     channel: int = 0
@@ -86,9 +114,9 @@ class WigleDevice(WiFiDevice):
             row = row.split(",")
 
         lat: float = float(row[7])
-        lon:float = float(row[8])
-        alt:float = float(row[9])
-        first_seen = datetime.strptime(row[3], '%Y-%m-%d %H:%M:%S')
+        lon: float = float(row[8])
+        alt: float = float(row[9])
+        first_seen = datetime.strptime(row[3], "%Y-%m-%d %H:%M:%S")
         geolocation = Geolocation(lat, lon, alt, first_seen)
         return create_wigle_device(
             mac_address=row[0],
