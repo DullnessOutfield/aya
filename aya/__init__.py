@@ -1,3 +1,4 @@
+
 from .lib import (
     get_devs,
     get_access_points,
@@ -11,9 +12,8 @@ from .classes import WigleDevice
 from .KismetDevice import KismetDevice
 from .rest import Connection
 from . import oui
-from . import wigle
+
 __all__ = (
-    "wigle",
     "get_devs",
     "get_access_points",
     "check_filepaths",
@@ -24,5 +24,8 @@ __all__ = (
     "Connection",
     "find_soi",
     "find_oui_matches",
-    "oui"
+    "oui",
+    "wigle"
 )
+
+from . import wigle

@@ -1,5 +1,5 @@
 import csv
-from ..classes import WigleDevice
+
 
 def find_soi(file, soi_file):
     with open(soi_file) as f:
@@ -10,6 +10,7 @@ def find_soi(file, soi_file):
     return hits
 
 def devices_from_csv(file):
+    from ..classes import WigleDevice
     with open(file) as f:
         raw_file = f.readlines()[2:]
     csvdata = csv.reader(raw_file)
