@@ -6,9 +6,10 @@ import re
 import sqlite3
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Sequence
 
 from .KismetDevice import KismetDevice, create_kismet_device
+from .classes import Device, WiFiDevice
 
 
 def extract_json(row: tuple) -> KismetDevice:
@@ -127,23 +128,33 @@ def get_basepath() -> Path:
     return Path(basepath)
 
 
-def find_soi(kismet_file: Path, soi_file: Path) -> list[KismetDevice]:
-    if not os.path.exists(kismet_file):
-        raise FileNotFoundError(f"File not found: {kismet_file}")
-    with open(soi_file) as f:
-        soi_list = f.readlines()
-    soi_list = ", ".join([f'"{i.upper().strip()}"' for i in soi_list if i.strip()])
-    con = sqlite3.connect(kismet_file)
-    cur = con.cursor()
-    query = f"select * from devices where devmac in ({soi_list})"
-    try:
-        cur.execute(query)
-    except sqlite3.OperationalError as e:
-        raise e
-    devs = []
-    for device in cur:
-        devs.append(extract_json(device))
-    return devs
+def find_soi(kismet_file: Path, targets: Sequence[Device]) -> list[KismetDevice]:
+    """Find devices of interest in a Kismet database file.
+
+    Supports MAC and SSID matching.
+
+    Args:
+        kismet_file (Path): The path to the Kismet database file.
+        targets (Sequence[Device]): A sequence of `Device` objects to search for.
+
+    Returns:
+        list[KismetDevice]: A list of `KismetDevice` matches
+
+    Raises:
+        FileNotFoundError: If the specified Kismet database file does not exist.
+
+    """
+    if not Path.exists(kismet_file):
+        msg = f"File not found: {kismet_file}"
+        raise FileNotFoundError(msg)
+    wifi_targets: list[WiFiDevice] = [i for i in targets if isinstance(i, WiFiDevice)]
+    target_macs = [i.mac for i in wifi_targets]
+    target_ssids = [i.name for i in wifi_targets]
+    devices = get_devs(kismet_file)
+    mac_hits = [i for i in devices if i.mac in target_macs]
+    aps = [i for i in devices if i.device_type == "Wi-Fi AP"]
+    ssid_hits = [i for i in aps if i.name in target_ssids]
+    return list(mac_hits + ssid_hits)
 
 
 def find_oui_matches(kismet_file: Path, OUI_list: list[str]) -> list[KismetDevice]:
@@ -281,4 +292,3 @@ def channel_count(kismet_file: Path):
                     channel_map[channel] = freqcount[j]
     return channel_map
 
-# def find_devices(targets: List[Devices])
