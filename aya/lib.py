@@ -1,12 +1,13 @@
+from __future__ import annotations
+
 import itertools
 import json
 import logging
-import os
 import re
 import sqlite3
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Sequence
 
 from .classes import BluetoothDevice, Device, WiFiDevice
 from .KismetDevice import KismetDevice, create_kismet_device
@@ -45,7 +46,7 @@ def extract_json(row: tuple) -> KismetDevice:
 
 
 def get_devs(
-    kismet_file: Path, devtype: Optional[list[str]] = None,
+    kismet_file: Path, devtype: list[str] | None = None,
 ) -> list[KismetDevice]:
     """Get devices from a kismet file.
 
@@ -124,6 +125,14 @@ def check_filepaths(filepaths: list[Path]) -> None:
 
 
 def get_basepath() -> Path:
+    """Retrieve folder where Projects live.
+
+    Defaults to ~/Data, otherwise checks pathconfig.txt for a single line containing an alternate path.
+
+    Returns:
+        Path: folder which should contain Projects
+
+    """
     pathfile = Path("./pathconfig.txt")
     if Path.exists(pathfile):
         with Path.open(pathfile) as f:
@@ -174,7 +183,7 @@ def find_oui_matches(kismet_file: Path, oui_list: list[str]) -> list[KismetDevic
 
     Args:
         kismet_file (Path): kismetdb to pull devices from
-        OUI_list (list[str]): list of MAC addresses or OUIs to be matched to
+        oui_list (list[str]): list of MAC addresses or OUIs to be matched to
 
     Returns:
         list[KismetDevice]: Matching devices
@@ -185,7 +194,8 @@ def find_oui_matches(kismet_file: Path, oui_list: list[str]) -> list[KismetDevic
 
     """
     if not Path.exists(kismet_file):
-        raise FileNotFoundError(f"File not found: {kismet_file}")
+        msg = f"File not found: {kismet_file}"
+        raise FileNotFoundError(msg)
     oui_list = [f'"{clean_oui(i)}"' for i in oui_list]
     oui_joined = ", ".join(oui_list)
     con = sqlite3.connect(kismet_file)
@@ -221,6 +231,7 @@ def clean_oui(oui: str) -> str:
 
 
 def generate_24g_channels():
+    """Get dict containing center freq / freq ranges for all 14 2.4GHz wifi channels."""
     channel_map = {}
     for i in range(1, 14):
         freq = 2407 + (i * 5)
@@ -230,6 +241,7 @@ def generate_24g_channels():
 
 
 def generate_5g_channels():
+    """Get dict containing center freq / freq ranges for all 5GHz wifi channels."""
     channelwidths = [
         [[180, 182, 184, 187, 189], 10],
         [[34, 38, 46, 54, 62, 102, 110, 118, 126, 134, 142, 151, 159, 167, 175], 40],
@@ -274,13 +286,14 @@ def generate_5g_channels():
 
 
 def get_freq_data(kismet_file: Path):
+    """Calculate how many packets occurred on each Wi-Fi channel."""
     freqcount = {}
     con = sqlite3.connect(kismet_file)
     cur = con.cursor()
     for j in cur.execute(
         "select frequency, count(frequency) from packets where frequency > 0 group by frequency"
     ):
-        j = list(j)
+        j: list[int] = list(j)
         j[0] = int(j[0] * (10**-3))
         if j[0] not in freqcount:
             freqcount[j[0]] = j[1]
@@ -290,22 +303,23 @@ def get_freq_data(kismet_file: Path):
 
 
 def channel_count(kismet_file: Path):
+    MAX_24G_FREQ = 3000
     freqcount = get_freq_data(kismet_file)
-    channelmap5G = generate_5g_channels()
-    channelmap24G = generate_24g_channels()
+    channel_map_5g = generate_5g_channels()
+    channel_map_24g = generate_24g_channels()
     channel_map = {}
 
-    for channel in channelmap5G:
-        for i in freqcount:
-            if channelmap5G[channel]["center"] == i:
-                channel_map[channel] = freqcount[i]
-        else:
-            channel_map[channel] = 0
+    for channel in channel_map_5g.values():
+        for k,v in freqcount.items():
+            if channel["center"] == k:
+                channel_map[channel] = v
+            else:
+                channel_map[channel] = 0
 
-    for i, j in enumerate(freqcount):
-        if j < 3000:
-            for channel in channelmap24G:
-                if channelmap24G[channel]["center"] == j:
+    for j in freqcount:
+        if j < MAX_24G_FREQ:
+            for channel in channel_map_24g:
+                if channel_map_24g[channel]["center"] == j:
                     channel_map[channel] = freqcount[j]
     return channel_map
 
