@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import binascii
 from pathlib import Path
 
 import pyshark
@@ -25,14 +26,33 @@ fc_types = {
 ap_types = ["BEACON_TYPE", "PROBE_RESP_TYPE"]
 
 
+def hex_to_ascii(hex_string: str) -> str:
+    """Translate pyshark hex data into text."""
+    try:
+        return binascii.unhexlify(hex_string.replace(":", "")).decode("ascii", errors="ignore")
+    except binascii.Error:
+        return hex_string
+
+
+def get_ssid_from_packet(packet: Packet) -> str:
+    """Get SSID from packet if it exists."""
+    if hasattr(packet, "wlan.mgt"):
+        ssid = packet["wlan.mgt"].get("wlan_ssid", "")
+        return "" if ssid == "SSID: <MISSING>" else hex_to_ascii(ssid)
+    return ""
+
+
 def wifi_device_from_packet(packet: Packet) -> WiFiDevice:
-    """Create an Aya WiFiDevice from a pyshark Packets."""
+    """Create an Aya WiFi>Device from a pyshark Packets."""
     dev_type = None
+    ssid = None
     if packet.wlan.fc_type_subtype.hex_value in fc_types:
         fc_type = fc_types[packet.wlan.fc_type_subtype.hex_value]
         if fc_type in ap_types:
             dev_type = "Wi-Fi AP"
-    return WiFiDevice(packet.wlan.ta, [], dev_type)
+            ssid = get_ssid_from_packet(packet)
+
+    return WiFiDevice(packet.wlan.ta, [], dev_type, ssid)
 
 
 def get_devs(filename: Path) -> list[WiFiDevice]:
@@ -44,6 +64,7 @@ def get_devs(filename: Path) -> list[WiFiDevice]:
             mac = packet.wlan.ta
             if mac not in devs:
                 devs[mac] = wifi_device_from_packet(packet)
+                print(devs[mac])
     return list(devs.values())
 
 
