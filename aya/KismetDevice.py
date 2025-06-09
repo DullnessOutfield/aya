@@ -89,6 +89,7 @@ class KismetDevice(WiFiDevice):
             data = json.loads(device_json)
         else:
             data = device_json
+        data = clean_dict_keys(data)
         mac = data.get("kismet.device.base.macaddr")
         first_time = data.get("kismet.device.base.first_time")
         last_time = data.get("kismet.device.base.last_time")
@@ -107,6 +108,22 @@ def create_kismet_device(mac_address: str, **kwargs) -> KismetDevice:
     """Create a Kismet device using a MAC address as the identifier."""
     return KismetDevice(identifier=mac_address, **kwargs)
 
+
+def clean_dict_keys(obj: dict|list) -> dict:
+    """
+    Replace underscores with periods in dictionary keys to verify keys are consistent
+    """
+    if isinstance(obj, dict):
+        new_dict = {}
+        for key, value in obj.items():
+            new_key = key.replace('_', '.') if isinstance(key, str) else key
+            # Recursively process the value
+            new_dict[new_key] = clean_dict_keys(value)
+        return new_dict
+    elif isinstance(obj, list):
+        return [clean_dict_keys(item) for item in obj]
+    else:
+        return obj
 
 if __name__ == "__main__":
     x = create_kismet_device(
