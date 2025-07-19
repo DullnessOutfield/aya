@@ -40,3 +40,6 @@ aya-apntr = "aya.tools.APNTR:main"
 aya-aplister-finder = "aya.tools.APLister2:main"
 aya-probegraph = "aya.tools.probe_grapher:main"
 aya-commondevices = "aya.tools.WITWIJO:main"
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "single"
