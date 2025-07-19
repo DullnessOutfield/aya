@@ -120,8 +120,7 @@ def check_filepaths(filepaths: list[Path]) -> None:
     """
     for path in filepaths:
         if not Path.exists(path):
-            msg = f"{path} does not exist."
-            raise FileNotFoundError(msg)
+            raise FileNotFoundError(path)
 
 
 def get_basepath() -> Path:
