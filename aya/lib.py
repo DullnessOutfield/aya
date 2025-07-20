@@ -12,6 +12,11 @@ from typing import Sequence
 from .classes import BluetoothDevice, Device, WiFiDevice
 from .KismetDevice import KismetDevice, create_kismet_device
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 def extract_json(row: tuple) -> KismetDevice:
     """Extract and parse the JSON data from a Kismet database device row.
@@ -35,7 +40,10 @@ def extract_json(row: tuple) -> KismetDevice:
         real_json: dict = json.loads(rawjson)
     except json.decoder.JSONDecodeError as e:
         real_json = {}
-        logging.warning("Error decoding %s: %s", mac, e)
+        logger.warning("Error decoding %s: %s", mac, e)
+    except UnicodeDecodeError as e:
+        real_json = {}
+        logger.warning('Unicode error on %s: %s', mac, e)
     return create_kismet_device(
         mac,
         first_time=first_time,
