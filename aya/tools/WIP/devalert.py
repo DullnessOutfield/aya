@@ -1,3 +1,4 @@
+from multiprocessing import connection
 import time
 import aya
 import kismet_rest
@@ -24,10 +25,13 @@ def connect_to_devices():
         )
         user = connection_parameters["username"]
         passw = connection_parameters["password"]
+        host = connection_parameters["address"]
+        port = connection_parameters["port"]
+        uri = f"http://{host}:{port}"
     except FileNotFoundError:
         user = "username"
         passw = "password"
-    return kismet_rest.Devices(username=user, password=passw)
+    return kismet_rest.Devices(uri, username=user, password=passw)
 
 
 def main():
