@@ -1,64 +1,19 @@
-import json
 import argparse
-import sys
-import os
-import subprocess
-import shutil
-from collections import defaultdict
 from pathlib import Path
 
 import aya
 from aya import KismetDevice
 
+
 # --- Style and Color constants ---
 class Style:
-    RESET = '\033[0m'
-    BOLD = '\033[1m'
-    RED = '\033[91m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    BLUE = '\033[94m'
+    RESET = "\033[0m"
+    BOLD = "\033[1m"
+    RED = "\033[91m"
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    BLUE = "\033[94m"
 
-def run_conversion_prompt(kismet_file):
-    """
-    Handles the logic for converting a .kismet file to .json.
-    Prompts the user before taking action.
-    """
-    if not kismet_file.endswith('.kismet'):
-        print(f"{Style.RED}{Style.BOLD}Error: Input file must be a .kismet log file.{Style.RESET}")
-        sys.exit(1)
-
-    json_file = kismet_file.replace('.kismet', '.json')
-    run_command = True
-
-    if os.path.exists(json_file):
-        overwrite = input(f"{Style.YELLOW}[?] Output file '{json_file}' already exists. Use it? (Y/n): {Style.RESET}").lower().strip()
-        if overwrite == '' or overwrite == 'y':
-            print(f"{Style.GREEN}[*] Using existing file: {json_file}{Style.RESET}")
-            run_command = False
-
-    if run_command:
-        command = f"kismet_log_to_json --in \"{kismet_file}\" --out \"{json_file}\""
-        
-        print(f"\n{Style.BLUE}The script needs to run the following command:{Style.RESET}")
-        print(f"  {Style.BOLD}{command}{Style.RESET}")
-        confirm = input(f"{Style.YELLOW}[?] Do you want to proceed? (Y/n): {Style.RESET}").lower().strip()
-
-        if confirm == '' or confirm == 'y':
-            try:
-                print(f"[*] Running conversion for '{kismet_file}'...")
-                subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
-                print(f"{Style.GREEN}[âœ“] Successfully created '{json_file}'{Style.RESET}")
-            except subprocess.CalledProcessError as e:
-                print(f"{Style.RED}{Style.BOLD}Error during conversion!{Style.RESET}")
-                print(f"  Return Code: {e.returncode}")
-                print(f"  Stderr: {e.stderr.strip()}")
-                sys.exit(1)
-        else:
-            print(f"{Style.RED}Conversion cancelled by user. Exiting.{Style.RESET}")
-            sys.exit(0)
-            
-    return json_file
 
 def parse_kismet_log(file_path):
     """
@@ -74,23 +29,30 @@ def parse_kismet_log(file_path):
         aps[device.mac] = device
     for device in aya.get_stas(file_path):
         stas[device.mac] = device
-    probes: list[str] = set(sorted([probe for device in stas.values() for probe in device.probedSSIDs]))
+    probes: list[str] = set(
+        sorted([probe for device in stas.values() for probe in device.probedSSIDs])
+    )
     return aps, stas, probes
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Interactively compare two Kismet logs, with prompts for file conversion.",
-        formatter_class=argparse.RawTextHelpFormatter
+        formatter_class=argparse.RawTextHelpFormatter,
     )
-    parser.add_argument('baseline_file', help="Path to the baseline .kismet log file.")
-    parser.add_argument('comparison_file', help="Path to the comparison .kismet log file.")
+    parser.add_argument("baseline_file", help="Path to the baseline .kismet log file.")
+    parser.add_argument(
+        "comparison_file", help="Path to the comparison .kismet log file."
+    )
     return parser.parse_args()
 
-def report_new_and_missing(baseline_aps: list[KismetDevice], 
-                           comp_aps: list[KismetDevice], 
-                           baseline_clients: list[KismetDevice], 
-                           comp_clients: list[KismetDevice]):
 
+def report_new_and_missing(
+    baseline_aps: list[KismetDevice],
+    comp_aps: list[KismetDevice],
+    baseline_clients: list[KismetDevice],
+    comp_clients: list[KismetDevice],
+):
     new_aps = set(comp_aps.keys()) - set(baseline_aps.keys())
     missing_aps = set(baseline_aps.keys()) - set(comp_aps.keys())
     new_clients = set(comp_clients.keys()) - set(baseline_clients.keys())
@@ -112,11 +74,15 @@ def report_new_and_missing(baseline_aps: list[KismetDevice],
     for mac in sorted(missing_clients):
         print(f"  - {mac}")
 
-def report_environmental_changes(baseline_aps, comp_aps, baseline_clients, comp_clients):
-    print("\n" + "="*50 + "\n")
+
+def report_environmental_changes(
+    baseline_aps, comp_aps, baseline_clients, comp_clients
+):
+    print("\n" + "=" * 50 + "\n")
     print("--- ðŸ”„ Environmental Changes for Common Devices ---")
     _report_ap_changes(baseline_aps, comp_aps)
     _report_client_changes(baseline_clients, comp_clients)
+
 
 def _report_ap_changes(baseline_aps, comp_aps):
     common_aps = baseline_aps.keys() & comp_aps.keys()
@@ -130,23 +96,26 @@ def _report_ap_changes(baseline_aps, comp_aps):
             for change in changes:
                 print(f"    - {change}")
 
+
 def _get_ap_changes(base_ap: KismetDevice, comp_ap: KismetDevice):
     changes = []
     if base_ap.name != comp_ap.name:
         changes.append(f"SSID changed: '{base_ap.name}' -> '{comp_ap.name}'")
-    print(base_ap.dot11)
     if base_ap.channel != comp_ap.channel:
         changes.append(f"Channel changed: {base_ap.channel} -> {comp_ap.channel}")
     if base_ap.crypt != comp_ap.crypt:
         changes.append(f"Encryption changed: {base_ap.crypt} -> {comp_ap.crypt}")
     return changes
 
+
 def _report_client_changes(baseline_clients, comp_clients):
     common_clients = baseline_clients.keys() & comp_clients.keys()
     print(f"\n[*] Analyzing {len(common_clients)} common Clients for changes...")
     for mac in sorted(common_clients):
         base_client, comp_client = baseline_clients[mac], comp_clients[mac]
-        added_probes, removed_probes = _get_client_probe_changes(base_client, comp_client)
+        added_probes, removed_probes = _get_client_probe_changes(
+            base_client, comp_client
+        )
         if added_probes or removed_probes:
             print(f"  - Client: {mac}")
             if added_probes:
@@ -154,13 +123,15 @@ def _report_client_changes(baseline_clients, comp_clients):
             if removed_probes:
                 print(f"    - Stopped probing for: {', '.join(sorted(removed_probes))}")
 
+
 def _get_client_probe_changes(base_client, comp_client):
-    added_probes = comp_client['probed_ssids'] - base_client['probed_ssids']
-    removed_probes = base_client['probed_ssids'] - comp_client['probed_ssids']
+    added_probes = comp_client["probed_ssids"] - base_client["probed_ssids"]
+    removed_probes = base_client["probed_ssids"] - comp_client["probed_ssids"]
     return added_probes, removed_probes
 
+
 def report_probed_ssid_analysis(baseline_probes, comp_probes):
-    print("\n" + "="*50 + "\n")
+    print("\n" + "=" * 50 + "\n")
     print("--- ðŸ“¡ Probed SSID Analysis ---")
     newly_probed_ssids = comp_probes - baseline_probes
     no_longer_probed_ssids = baseline_probes - comp_probes
@@ -172,16 +143,20 @@ def report_probed_ssid_analysis(baseline_probes, comp_probes):
     for ssid in sorted(no_longer_probed_ssids):
         print(f"  - '{ssid}'")
 
+
 def main():
     args = parse_args()
 
     print("\n--- ðŸ” Processing Kismet Logs ---")
-    baseline_aps, baseline_clients, baseline_probes = parse_kismet_log(args.baseline_file)
+    baseline_aps, baseline_clients, baseline_probes = parse_kismet_log(
+        args.baseline_file
+    )
     comp_aps, comp_clients, comp_probes = parse_kismet_log(args.comparison_file)
 
     report_new_and_missing(baseline_aps, comp_aps, baseline_clients, comp_clients)
     report_environmental_changes(baseline_aps, comp_aps, baseline_clients, comp_clients)
     report_probed_ssid_analysis(baseline_probes, comp_probes)
+
 
 if __name__ == "__main__":
     main()
