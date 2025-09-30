@@ -125,6 +125,7 @@ def check_filepaths(filepaths: list[Path]) -> None:
     Args:
         filepaths (list[Path]): A list of file paths to check.
 
+    comp_stas: list[aya.KismetDevice] = aya.get_stas(args.comparison_file)
     """
     for path in filepaths:
         if not Path.exists(path):
@@ -330,3 +331,23 @@ def channel_count(kismet_file: Path):
                     channel_map[channel] = freqcount[j]
     return channel_map
 
+def report_new_and_missing(baseline_devs: list[KismetDevice], comp_devs: list[KismetDevice]):
+
+    return None
+
+def report_probed_ssid_analysis(baseline_devs: list[KismetDevice], comp_devs: list[KismetDevice]):
+    comp_probes = [probe for probes in [i.probedSSIDs() for i in comp_devs] for probe in probes]
+    baseline_probes = [probe for probes in [i.probedSSIDs() for i in baseline_devs] for probe in probes]
+    print("\n" + "="*50 + "\n")
+    print("--- ðŸ“¡ Probed SSID Analysis ---")
+
+    newly_probed_ssids = comp_probes.keys() - baseline_probes.keys()
+    no_longer_probed_ssids = baseline_probes.keys() - comp_probes.keys()
+
+    print(f"\n[+] New SSIDs being probed for: {len(newly_probed_ssids)}")
+    for ssid in sorted(newly_probed_ssids):
+        clients_probing = ', '.join(sorted(comp_probes[ssid]))
+        print(f"  - '{ssid}' (by: {clients_probing})")
+    print(f"\n[-] SSIDs no longer being probed for: {len(no_longer_probed_ssids)}")
+    for ssid in sorted(no_longer_probed_ssids):
+        print(f"  - '{ssid}'")

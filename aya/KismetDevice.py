@@ -31,6 +31,14 @@ class KismetDevice(WiFiDevice):
     @property
     def json(self) -> dict:
         return self.metadata
+    
+    @property
+    def channel(self) -> str:
+        return self.dot11.get('dot11.device.last_beaconed_ssid_record', {}).get('dot11.advertisedssid.channel', '')
+    
+    @property
+    def crypt(self) -> str:
+        return self.dot11.get('dot11.device.last_beaconed_ssid_record', {}).get('dot11.advertisedssid.crypt_string', '')
 
     @cached_property
     def probedSSIDs(self) -> list[str]:
